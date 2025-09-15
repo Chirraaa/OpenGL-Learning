@@ -82,7 +82,10 @@ int main()
 
 	cube.init();
 
-	Lamp lamp(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(-1.0f, -0.5f, -0.5f), glm::vec3(0.25f));
+	Cube cube2(Material::jade, glm::vec3(1.5f, 0.0f, -1.5f), glm::vec3(0.5f));
+	cube2.init();
+
+	Lamp lamp(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(-2.0f, 0.0f, -1.0f), glm::vec3(0.25f));
 	lamp.init();
 
 	x = 0.0f;
@@ -125,6 +128,8 @@ int main()
 		
 		cube.render(shader);
 
+		cube2.render(shader);
+
 		lampShader.activate();
 		lampShader.setMat4("view", view);
 		lampShader.setMat4("projection", projection);
@@ -134,6 +139,7 @@ int main()
 	}
 
 	cube.cleanup();
+	cube2.cleanup();
 	lamp.cleanup();
 
 	glfwTerminate();
