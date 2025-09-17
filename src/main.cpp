@@ -88,7 +88,20 @@ int main()
 
 	DirLight dirLight = {glm::vec3(-0.2f, -1.0f, -0.3f), glm::vec3(0.1), glm::vec3(0.4f), glm::vec3(0.75f)};
 
-	Lamp lamp(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(-2.0f, 0.0f, -1.0f), glm::vec3(0.25f));
+	SpotLight spotLight = {
+		currentCam->cameraPos,
+		currentCam->cameraFront,
+		glm::cos(glm::radians(12.5f)),
+		glm::cos(glm::radians(15.0f)),
+		1.0f, 0.09f, 0.032f,
+		glm::vec3(0.0f),
+		glm::vec3(1.0f),
+		glm::vec3(1.0f)
+	};
+
+	Lamp lamp(glm::vec3(1.0f), 
+		glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 
+		1.0f, 0.09f, 0.032f, glm::vec3(-2.0f, 0.0f, -1.0f), glm::vec3(0.25f));
 	lamp.init();
 
 	x = 0.0f;
@@ -108,9 +121,13 @@ int main()
 		shader.set3Float("viewPos", currentCam->cameraPos);
 
 
-		dirLight.render(shader);
+		//dirLight.render(shader);
 
 		//lamp.pointLight.render(shader);
+			
+		spotLight.position = currentCam->cameraPos;
+		spotLight.direction = currentCam->cameraFront;
+		spotLight.render(shader);
 
 		// create transformation for screen
 		glm::mat4 model = glm::mat4(1.0f);
