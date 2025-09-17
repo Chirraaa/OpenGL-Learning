@@ -68,7 +68,7 @@ public:
 			indices[i] = i;
 		}
 
-		Texture tex0("assets/image1.jpg", "texture0");
+		Texture tex0("assets/image1.jpg", "material.diffuse");
 		tex0.load();
 		//Texture tex1("assets/image1.jpg", "texture1");
 		//tex1.load();
@@ -87,7 +87,7 @@ public:
 		shader.setMat4("model", model);
 
 		shader.set3Float("material.ambient", material.ambient);
-		shader.set3Float("material.diffuse", material.diffuse);
+		//shader.set3Float("material.diffuse", material.diffuse);
 		shader.set3Float("material.specular", material.specular);
 		shader.setFloat("material.shininess", material.shininess);
 

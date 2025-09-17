@@ -13,6 +13,7 @@
 #include "graphics/Shader.h"
 #include "graphics/Texture.h"
 #include "graphics/Model.h"
+#include "graphics/Light.h"
 
 #include "graphics/models/cube.hpp"
 #include "graphics/models/lamp.hpp"
@@ -85,6 +86,8 @@ int main()
 	Cube cube2(Material::jade, glm::vec3(1.5f, 0.0f, -1.5f), glm::vec3(0.5f));
 	cube2.init();
 
+	DirLight dirLight = {glm::vec3(-0.2f, -1.0f, -0.3f), glm::vec3(0.1), glm::vec3(0.4f), glm::vec3(0.75f)};
+
 	Lamp lamp(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(-2.0f, 0.0f, -1.0f), glm::vec3(0.25f));
 	lamp.init();
 
@@ -102,12 +105,12 @@ int main()
 		screen.update();
 
 		shader.activate();
-		shader.set3Float("light.position", lamp.pos);
 		shader.set3Float("viewPos", currentCam->cameraPos);
 
-		shader.set3Float("light.ambient", lamp.ambient);
-		shader.set3Float("light.diffuse", lamp.diffuse);
-		shader.set3Float("light.specular", lamp.specular);
+
+		dirLight.render(shader);
+
+		//lamp.pointLight.render(shader);
 
 		// create transformation for screen
 		glm::mat4 model = glm::mat4(1.0f);
