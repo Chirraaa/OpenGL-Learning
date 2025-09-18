@@ -79,12 +79,39 @@ int main()
 	Shader lampShader("assets/vertex_core.glsl", "assets/lamp.fs");
 
 
-	Cube cube(Material::emerald, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.75f));
+	glm::vec3 cubePositions[] = {
+		glm::vec3(0.0f,  0.0f,  0.0f),
+		glm::vec3(2.0f,  5.0f, -15.0f),
+		glm::vec3(-1.5f, -2.2f, -2.5f),
+		glm::vec3(-3.8f, -2.0f, -12.3f),
+		glm::vec3(2.4f, -0.4f, -3.5f),
+		glm::vec3(-1.7f,  3.0f, -7.5f),
+		glm::vec3(1.3f, -2.0f, -2.5f),
+		glm::vec3(1.5f,  2.0f, -2.5f),
+		glm::vec3(1.5f,  0.2f, -1.5f),
+		glm::vec3(-1.3f,  1.0f, -1.5f)
+	};
 
-	cube.init();
+	Cube cubes[10];
+	for (unsigned int i = 0; i < 10; i++) {
+		cubes[i] = Cube(Material::gold, cubePositions[i], glm::vec3(1.0f));
+		cubes[i].init();
+	}
 
-	Cube cube2(Material::jade, glm::vec3(1.5f, 0.0f, -1.5f), glm::vec3(0.5f));
-	cube2.init();
+	glm::vec3 pointLightPositions[] = {
+			glm::vec3(0.7f,  0.2f,  2.0f),
+			glm::vec3(2.3f, -3.3f, -4.0f),
+			glm::vec3(-4.0f,  2.0f, -12.0f),
+			glm::vec3(0.0f,  0.0f, -3.0f)
+	};
+	Lamp lamps[4];
+	for (unsigned int i = 0; i < 4; i++) {
+		lamps[i] = Lamp(glm::vec3(1.0f),
+			glm::vec3(0.05f), glm::vec3(0.8f), glm::vec3(1.0f),
+			1.0f, 0.07f, 0.032f,
+			pointLightPositions[i], glm::vec3(0.25f));
+		lamps[i].init();
+	}
 
 	DirLight dirLight = {glm::vec3(-0.2f, -1.0f, -0.3f), glm::vec3(0.1), glm::vec3(0.4f), glm::vec3(0.75f)};
 
@@ -98,11 +125,6 @@ int main()
 		glm::vec3(1.0f),
 		glm::vec3(1.0f)
 	};
-
-	Lamp lamp(glm::vec3(1.0f), 
-		glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 
-		1.0f, 0.09f, 0.032f, glm::vec3(-2.0f, 0.0f, -1.0f), glm::vec3(0.25f));
-	lamp.init();
 
 	x = 0.0f;
 	y = 0.0f;
@@ -121,13 +143,17 @@ int main()
 		shader.set3Float("viewPos", currentCam->cameraPos);
 
 
-		//dirLight.render(shader);
+		dirLight.render(shader);
 
-		//lamp.pointLight.render(shader);
+		for (int i = 0; i < 4; i++) {
+			lamps[i].pointLight.render(shader, i);
+		}
+		shader.setInt("noPointLights", 4);
 			
 		spotLight.position = currentCam->cameraPos;
 		spotLight.direction = currentCam->cameraFront;
-		spotLight.render(shader);
+		spotLight.render(shader, 0);
+		shader.setInt("noSpotLights", 1);
 
 		// create transformation for screen
 		glm::mat4 model = glm::mat4(1.0f);
@@ -146,21 +172,22 @@ int main()
 		shader.setMat4("view", view);
 		shader.setMat4("projection", projection);
 		
-		cube.render(shader);
-
-		cube2.render(shader);
+		for(int i = 0; i < 10; i++) 
+			cubes[i].render(shader);
 
 		lampShader.activate();
 		lampShader.setMat4("view", view);
 		lampShader.setMat4("projection", projection);
-		lamp.render(lampShader);
+		for (int i = 0; i < 4; i++) 
+			lamps[i].render(lampShader);
 
 		screen.newFrame();
 	}
 
-	cube.cleanup();
-	cube2.cleanup();
-	lamp.cleanup();
+	for (int i = 0; i < 10; i++)
+		cubes[i].cleanup();
+	for(int i = 0; i < 4; i++)
+		lamps[i].cleanup();
 
 	glfwTerminate();
 	return 0;

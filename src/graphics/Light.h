@@ -18,7 +18,7 @@ struct PointLight {
 	glm::vec3 diffuse;
 	glm::vec3 specular;
 
-	void render(Shader shader);
+	void render(Shader shader, int idx);
 };
 
 struct DirLight {
@@ -47,7 +47,7 @@ struct SpotLight {
 	glm::vec3 diffuse;
 	glm::vec3 specular;
 
-	void render(Shader shader);
+	void render(Shader shader, int idx);
 };
 
 #endif

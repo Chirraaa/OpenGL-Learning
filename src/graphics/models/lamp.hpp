@@ -15,6 +15,8 @@ public:
 	glm::vec3 diffuse;
 	glm::vec3 specular;
 
+	Lamp() = default;
+
 	Lamp(glm::vec3 lightColor,
 		glm::vec3 ambient,
 		glm::vec3 diffuse,
