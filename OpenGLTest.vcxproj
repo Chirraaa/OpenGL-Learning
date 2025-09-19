@@ -38,6 +38,8 @@
     <None Include="assets\fragment_core.glsl" />
     <None Include="assets\fragment_core2.glsl" />
     <None Include="assets\lamp.fs" />
+    <None Include="assets\models\scene.bin" />
+    <None Include="assets\models\scene.gltf" />
     <None Include="assets\vertex_core.glsl" />
   </ItemGroup>
   <ItemGroup>
@@ -151,7 +153,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>GLFW\glfw3.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>GLFW\glfw3.lib;assimp\assimp-vc143-mtd.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

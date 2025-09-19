@@ -63,6 +63,10 @@
     <None Include="assets\fragment_core.glsl" />
     <None Include="assets\fragment_core2.glsl" />
     <None Include="assets\lamp.fs" />
+    <None Include="assets\models\scene.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="assets\models\scene.gltf" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\graphics\Shader.h">

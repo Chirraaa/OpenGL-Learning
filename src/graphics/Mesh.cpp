@@ -34,13 +34,37 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 	setup();
 }
 
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, aiColor4D diffuse, aiColor4D specular) :
+	vertices(vertices), indices(indices), diffuse(diffuse), specular(specular), noTex(true) {
+	setup();
+}
+
 void Mesh::render(Shader shader) {
-	// textures
-	for (unsigned int i = 0; i < textures.size(); i++) {
-		// Set the sampler to the correct texture unit (i)
-		shader.setInt(textures[i].name, i);
-		glActiveTexture(GL_TEXTURE0 + i);
-		textures[i].bind();
+	if (noTex) {
+		shader.set4Float("material.diffuse", diffuse);
+		shader.set4Float("material.specular", specular);
+		shader.setInt("noTex", 1);
+	}
+	else {
+		// textures
+		unsigned int diffuseIdx = 0;
+		unsigned int specularIdx = 0;
+
+		for (unsigned int i = 0; i < textures.size(); i++) {
+			glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
+			// retrieve texture number (the N in diffuse_textureN)
+			std::string name;
+			switch (textures[i].type) {
+			case aiTextureType_DIFFUSE:
+				name = "diffuse" + std::to_string(diffuseIdx++);
+				break;
+			case aiTextureType_SPECULAR:
+				name = "specular" + std::to_string(specularIdx++);
+				break;
+			}
+			shader.setInt(name, i);
+			textures[i].bind();
+		}
 	}
 
 	glBindVertexArray(VAO);
@@ -77,7 +101,7 @@ void Mesh::setup() {
 	//vertex normal
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-	
+
 	glEnableVertexAttribArray(2);
 
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));

@@ -11,10 +11,8 @@ public:
 
 	Material material;
 
-	Cube() = default;
-
-	Cube(Material material,glm::vec3 pos, glm::vec3 size) :
-		material(material), pos(pos), size(size) {
+	Cube(glm::vec3 pos = glm::vec3(0.0f), glm::vec3 size = glm::vec3(1.0f)) :
+		Model(pos,size) {
 	}
 
 	void init() {
@@ -70,32 +68,32 @@ public:
 			indices[i] = i;
 		}
 
-		Texture tex0("assets/image1.jpg", "material.diffuse");
-		tex0.load();
+		//Texture tex0("assets/image1.jpg", "material.diffuse");
+		//tex0.load();
 		//Texture tex1("assets/image1.jpg", "texture1");
 		//tex1.load();
 
-		meshes.push_back(Mesh(Vertex::genList(vertices, noVertices), indices, { tex0 }));
+		meshes.push_back(Mesh(Vertex::genList(vertices, noVertices), indices));
 	}
 
-	void render(Shader shader) {
-		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, pos);
-		//model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-55.0f), glm::vec3(0.5f));
-		model = glm::scale(model, size);
-		
-
-
-		shader.setMat4("model", model);
-
-		shader.set3Float("material.ambient", material.ambient);
-		//shader.set3Float("material.diffuse", material.diffuse);
-		shader.set3Float("material.specular", material.specular);
-		shader.setFloat("material.shininess", material.shininess);
-
-
-		Model::render(shader);
-	}
+	//void render(Shader shader) {
+	//	glm::mat4 model = glm::mat4(1.0f);
+	//	model = glm::translate(model, pos);
+	//	//model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-55.0f), glm::vec3(0.5f));
+	//	model = glm::scale(model, size);
+	//	
+	//
+	//
+	//	shader.setMat4("model", model);
+	//
+	//	shader.set3Float("material.ambient", material.ambient);
+	//	//shader.set3Float("material.diffuse", material.diffuse);
+	//	shader.set3Float("material.specular", material.specular);
+	//	shader.setFloat("material.shininess", material.shininess);
+	//
+	//
+	//	Model::render(shader);
+	//}
 };
 
 #endif

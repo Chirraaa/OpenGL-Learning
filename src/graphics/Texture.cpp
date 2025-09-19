@@ -2,28 +2,23 @@
 
 #include <iostream>
 
-int Texture::currentId = 0;
-
 Texture::Texture() {}
 
-Texture::Texture(const char* path, const char* name, bool defaultParams)
-	: path(path), name(name), id(currentId++) {
+Texture::Texture(std::string dir, std::string path, aiTextureType type) :
+	dir(dir), path(path), type(type) {
 	generate();
-
-	if (defaultParams) {
-		setFilters(GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR);
-		setWrap(GL_REPEAT);
-	}
+	load();
 }
 
 void Texture::generate() {
-	glGenTextures(1, &tex);
-	glBindTexture(GL_TEXTURE_2D, tex);
+	glGenTextures(1, &id);
 }
 void Texture::load(bool flip) {
 	stbi_set_flip_vertically_on_load(true);
 
-	unsigned char* data = stbi_load(path, &width, &height, &nChannels, 0);
+	int width, height, nChannels;
+
+	unsigned char* data = stbi_load((dir + "/" + path).c_str(), & width, & height, & nChannels, 0);
 
 	GLenum colorMode = GL_RGB;
 	switch (nChannels) {
@@ -36,9 +31,18 @@ void Texture::load(bool flip) {
 	}
 
 	if (data) {
-		glBindTexture(GL_TEXTURE_2D, tex);
+		glBindTexture(GL_TEXTURE_2D, id);
 		glTexImage2D(GL_TEXTURE_2D, 0, colorMode, width, height, 0, colorMode, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
+
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+
 	}
 	else {
 		std::cout << "Image not loaded at " << path << std::endl;
@@ -47,24 +51,6 @@ void Texture::load(bool flip) {
 	stbi_image_free(data);
 }
 
-void Texture::setFilters(GLenum all) {
-	setFilters(all, all);
-}
-
-void Texture::setFilters(GLenum mag, GLenum min) {
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min);
-}
-
-void Texture::setWrap(GLenum all) {
-	setWrap(all, all);
-}
-
-void Texture::setWrap(GLenum s, GLenum t) {
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, s);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, t);
-}
-
 void Texture::bind() {
-	glBindTexture(GL_TEXTURE_2D, tex);
+	glBindTexture(GL_TEXTURE_2D, id);
 }

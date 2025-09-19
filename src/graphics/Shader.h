@@ -8,6 +8,8 @@
 #include <sstream>
 #include <iostream>
 
+#include <assimp/scene.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -35,6 +37,7 @@ public:
     void set3Float(const std::string& name, glm::vec3 v);
     void set4Float(const std::string& name, float v1, float v2, float v3, float v4);
     void set4Float(const std::string& name, glm::vec4 v);
+	void set4Float(const std::string& name, aiColor4D color);
     void setMat3(const std::string& name, glm::mat3 val);
     void setMat4(const std::string& name, glm::mat4 val);
 
