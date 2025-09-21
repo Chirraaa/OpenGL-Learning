@@ -29,7 +29,7 @@ public:
 	void init();
 	void loadModel(std::string path);
 
-	void render(Shader shader);
+	void render(Shader shader, bool setModel = true);
 
 	void cleanup();
 protected:

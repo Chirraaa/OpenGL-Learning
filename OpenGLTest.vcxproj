@@ -48,6 +48,7 @@
     <ClInclude Include="src\graphics\Mesh.h" />
     <ClInclude Include="src\graphics\Model.h" />
     <ClInclude Include="src\graphics\models\cube.hpp" />
+    <ClInclude Include="src\graphics\models\gun.hpp" />
     <ClInclude Include="src\graphics\models\lamp.hpp" />
     <ClInclude Include="src\graphics\Texture.h" />
     <ClInclude Include="src\io\Camera.h" />

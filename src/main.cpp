@@ -18,6 +18,9 @@
 
 #include "graphics/models/cube.hpp"
 #include "graphics/models/lamp.hpp"
+#include "graphics/models/gun.hpp"
+
+
 #include "io/Keyboard.h"
 #include "io/Mouse.h"
 #include "io/Camera.h"
@@ -30,14 +33,14 @@ glm::mat4 transform = glm::mat4(1.0f);
 //Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
 Camera cameras[2] = {
-	Camera(glm::vec3(0.0f, 0.0f, 3.0f)),
-	Camera(glm::vec3(0.0f, 0.0f, 3.0f))
+	Camera(glm::vec3(0.0f, 0.0f, 0.0f)),
+	Camera(glm::vec3(0.0f, 0.0f, 0.0f))
 };
 
 Camera* currentCam = &cameras[0];
 
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
+double deltaTime = 0.0f;
+double lastFrame = 0.0f;
 
 unsigned int SCREEN_WIDTH = 800, SCREEN_HEIGHT = 600;
 
@@ -81,8 +84,11 @@ int main()
 
 
 	// Models
-	Model m(glm::vec3(0.0f,0.0f,-5.0f), glm::vec3(0.05f), true);
-	m.loadModel("assets/models/scene.gltf");
+	//Model m(glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.05f), true);
+	//m.loadModel("assets/models/lowpoly Rifle/scene.gltf");
+
+	Gun g;
+	g.loadModel("assets/models/lowpoly Rifle/scene.gltf");
 
 
 	glm::vec3 cubePositions[] = {
@@ -190,7 +196,7 @@ int main()
 		//for(int i = 0; i < 10; i++) 
 		//	cubes[i].render(shader);
 
-		m.render(shader);
+		g.render(shader, currentCam);
 
 		lampShader.activate();
 		lampShader.setMat4("view", view);
@@ -204,7 +210,7 @@ int main()
 	//for (int i = 0; i < 10; i++)
 	//	cubes[i].cleanup();
 
-	m.cleanup();
+	g.cleanup();
 	for(int i = 0; i < 4; i++)
 		lamps[i].cleanup();
 
