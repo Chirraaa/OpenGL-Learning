@@ -94,6 +94,10 @@ public:
 	//
 	//	Model::render(shader);
 	//}
+
+	void render(Shader shader, float dt) {
+		Model::render(shader, dt);
+	}
 };
 
 #endif

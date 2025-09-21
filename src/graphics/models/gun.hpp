@@ -7,7 +7,7 @@ public:
 		: Model(glm::vec3(0.0f), glm::vec3(0.05f), true) {
 	}
 
-    void render(Shader shader, Camera* camera, bool setModel = false) {
+    void render(Shader shader, Camera* camera, float dt, bool setModel = false) {
         glm::vec3 front = camera->cameraFront;
         glm::vec3 up = camera->cameraUp;
         glm::vec3 right = camera->cameraRight;
@@ -28,10 +28,10 @@ public:
 
         model = cameraRotation * model;
 
-        pos = camera->cameraPos + (front * 0.2f) + (up * -0.1f) + (right * 0.3f);
-        model = glm::translate(glm::mat4(1.0f), pos) * model;
+        rb.pos = camera->cameraPos + (front * 0.2f) + (up * -0.1f) + (right * 0.3f);
+        model = glm::translate(glm::mat4(1.0f), rb.pos) * model;
 
         shader.setMat4("model", model);
-        Model::render(shader, false);
+        Model::render(shader, dt, false);
     }
 };

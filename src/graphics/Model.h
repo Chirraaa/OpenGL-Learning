@@ -14,10 +14,11 @@
 #include <vector>
 
 #include "Mesh.h"
+#include "../physics/RigidBody.h"
 
 class Model {
 public:
-	glm::vec3 pos;
+	RigidBody rb;
 	glm::vec3 size;
 	float angle = 0.0f;
 	glm::vec3 rotationAxis = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -29,7 +30,7 @@ public:
 	void init();
 	void loadModel(std::string path);
 
-	void render(Shader shader, bool setModel = true);
+	void render(Shader shader,float dt, bool setModel = true);
 
 	void cleanup();
 protected:

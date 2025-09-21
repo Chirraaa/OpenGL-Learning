@@ -33,6 +33,8 @@
     <ClCompile Include="src\io\Screen.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\graphics\Shader.cpp" />
+    <ClCompile Include="src\physics\Environment.cpp" />
+    <ClCompile Include="src\physics\RigidBody.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\fragment_core.glsl" />
@@ -40,6 +42,8 @@
     <None Include="assets\lamp.fs" />
     <None Include="assets\models\scene.bin" />
     <None Include="assets\models\scene.gltf" />
+    <None Include="assets\models\sphere\scene.bin" />
+    <None Include="assets\models\sphere\scene.gltf" />
     <None Include="assets\vertex_core.glsl" />
   </ItemGroup>
   <ItemGroup>
@@ -50,6 +54,8 @@
     <ClInclude Include="src\graphics\models\cube.hpp" />
     <ClInclude Include="src\graphics\models\gun.hpp" />
     <ClInclude Include="src\graphics\models\lamp.hpp" />
+    <ClInclude Include="src\graphics\models\modelarray.hpp" />
+    <ClInclude Include="src\graphics\models\sphere.hpp" />
     <ClInclude Include="src\graphics\Texture.h" />
     <ClInclude Include="src\io\Camera.h" />
     <ClInclude Include="src\io\Joystick.h" />
@@ -57,6 +63,8 @@
     <ClInclude Include="src\io\Mouse.h" />
     <ClInclude Include="src\io\Screen.h" />
     <ClInclude Include="src\graphics\Shader.h" />
+    <ClInclude Include="src\physics\Environment.h" />
+    <ClInclude Include="src\physics\RigidBody.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\image1.jpg" />
