@@ -75,6 +75,8 @@ uniform Material material;
 uniform int noTex;
 uniform vec3 viewPos;
 
+uniform int applyGrassTint;
+uniform vec3 grassTintColor;
 
 vec4 calcPointLight(int idx, vec3 norm, vec3 viewDir, vec4 diffMap, vec4 specMap);
 
@@ -95,6 +97,10 @@ void main(){
 		}else{
 		diffMap = texture(diffuse0, TexCoord);
 		specMap = texture(specular0, TexCoord);
+
+		if (applyGrassTint == 1) {
+            diffMap.rgb *= grassTintColor;
+        }
 	}
 
 

@@ -24,14 +24,28 @@ class Voxel : public Cube {
 public:
 	// Bitmask for which faces to render (1 = render, 0 = cull)
 	uint8_t visibleFaces = 0b111111; // All faces visible by default
-
+	std::string texName = "dirt.png";
+	glm::vec3 tintColor = glm::vec3(1.0f, 1.0f, 1.0f);
 	using Cube::Cube;
 
-	void init() {
-		// Don't call Cube::init() - we'll create our own mesh
+	void setTint(glm::vec3 color) {
+		tintColor = color;
+	}
+
+	void setTint(float r, float g, float b) {
+		tintColor = glm::vec3(r, g, b);
+	}
+
+	void applyTintToShader(Shader& shader) {
+		shader.set3Float("tintColor", tintColor);
+		shader.setInt("applyTint", 1);
+	}
+
+	void init(std::string fileTexName = "dirt.png") {
+		texName = fileTexName;
 		createMeshWithCulling();
 
-		Texture dirtTexture("assets/textures", "dirt.png", aiTextureType_DIFFUSE);
+		Texture dirtTexture("assets/textures", fileTexName, aiTextureType_DIFFUSE);
 		dirtTexture.load();
 
 		if (!meshes.empty()) {
@@ -48,7 +62,7 @@ public:
 			meshes.clear();
 			createMeshWithCulling();
 		}
-		Texture dirtTexture("assets/textures", "dirt.png", aiTextureType_DIFFUSE);
+		Texture dirtTexture("assets/textures", texName, aiTextureType_DIFFUSE);
 		dirtTexture.load();
 		meshes[0].textures.push_back(dirtTexture);
 		meshes[0].setUseTexture(true);

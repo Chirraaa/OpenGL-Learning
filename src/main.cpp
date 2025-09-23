@@ -62,6 +62,8 @@ float x, y, z;
 
 SphereArray launchObjects;
 
+Voxel testBlock;
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(double dt);
 
@@ -107,7 +109,9 @@ int main()
 	//chunk.generateTerrain();
 	//chunk.generateSimpleHills();
 	//chunk.generateMountains();
-	chunk.generateCaves();
+	chunk.generateTerrain();
+
+	testBlock.init("grass_block_top.png");
 
 	launchObjects.init();
 
@@ -265,6 +269,8 @@ int main()
 
 		screen.newFrame();
 	}
+
+	testBlock.cleanup();
 
 	launchObjects.cleanup();
 
