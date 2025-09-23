@@ -63,6 +63,9 @@
     <ClCompile Include="src\physics\Environment.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\generation\perlin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\vertex_core.glsl" />
@@ -139,6 +142,9 @@
     <ClInclude Include="src\graphics\models\voxelchunk.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\generation\perlin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\image1.jpg">
@@ -163,6 +169,9 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="assets\textures\sand.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="ScreenshotsOfCurrentWork\minecraft_terrain_plane.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

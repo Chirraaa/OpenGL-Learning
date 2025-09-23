@@ -52,7 +52,7 @@ unsigned int SCREEN_WIDTH = 800, SCREEN_HEIGHT = 600;
 Screen screen;
 
 
-VoxelChunk chunk(glm::vec3(-5, -2, -5));
+VoxelChunk chunk(glm::vec3(-8, -32, -8));
 
 float x, y, z;
 
@@ -104,7 +104,10 @@ int main()
 
 	//sphere.init();
 
-	chunk.create_chunk();
+	//chunk.generateTerrain();
+	//chunk.generateSimpleHills();
+	//chunk.generateMountains();
+	chunk.generateCaves();
 
 	launchObjects.init();
 

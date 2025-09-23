@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Linking\lib\stb.cpp" />
+    <ClCompile Include="src\generation\perlin.cpp" />
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\graphics\Light.cpp" />
     <ClCompile Include="src\graphics\Material.cpp" />
@@ -47,6 +48,7 @@
     <None Include="assets\vertex_core.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\generation\perlin.h" />
     <ClInclude Include="src\graphics\Light.h" />
     <ClInclude Include="src\graphics\Material.h" />
     <ClInclude Include="src\graphics\Mesh.h" />
@@ -77,6 +79,7 @@
     <Image Include="assets\textures\grass_block_side_overlay.png" />
     <Image Include="assets\textures\grass_block_top.png" />
     <Image Include="assets\textures\sand.png" />
+    <Image Include="ScreenshotsOfCurrentWork\minecraft_terrain_plane.png" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
