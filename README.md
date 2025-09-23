@@ -1,2 +1,2 @@
 # Welcome !
-![MC_Terrain](ScreenshotsOfCurrentWork/minecraft_terrain_plain.png)
+![MC_Terrain](ScreenshotsOfCurrentWork/minecraft_terrain_plane.png)
