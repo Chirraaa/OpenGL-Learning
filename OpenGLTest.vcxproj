@@ -22,6 +22,7 @@
     <ClCompile Include="Linking\lib\stb.cpp" />
     <ClCompile Include="src\generation\perlin.cpp" />
     <ClCompile Include="src\glad.c" />
+    <ClCompile Include="src\graphics\env\World.cpp" />
     <ClCompile Include="src\graphics\Light.cpp" />
     <ClCompile Include="src\graphics\Material.cpp" />
     <ClCompile Include="src\graphics\Mesh.cpp" />
@@ -61,6 +62,7 @@
     <ClInclude Include="src\graphics\models\voxel.hpp" />
     <ClInclude Include="src\graphics\models\voxelchunk.hpp" />
     <ClInclude Include="src\graphics\Texture.h" />
+    <ClInclude Include="src\graphics\env\World.h" />
     <ClInclude Include="src\io\Camera.h" />
     <ClInclude Include="src\io\Joystick.h" />
     <ClInclude Include="src\io\Keyboard.h" />

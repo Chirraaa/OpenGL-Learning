@@ -31,6 +31,8 @@
 #include "physics/Environment.h"
 #include "graphics/models/voxelchunk.hpp"
 
+#include "graphics/env/World.h"
+
 
 
 glm::mat4 transform = glm::mat4(1.0f);
@@ -38,8 +40,8 @@ glm::mat4 transform = glm::mat4(1.0f);
 //Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
 Camera cameras[2] = {
-	Camera(glm::vec3(0.0f, 0.0f, 0.0f)),
-	Camera(glm::vec3(0.0f, 0.0f, 0.0f))
+	Camera(glm::vec3(0.0f, 40.0f, 0.0f)), // Start higher up to see terrain
+	Camera(glm::vec3(0.0f, 40.0f, 0.0f))
 };
 
 Camera* currentCam = &cameras[0];
@@ -53,6 +55,10 @@ Screen screen;
 
 
 VoxelChunk chunk(glm::vec3(-8, -32, -8));
+
+std::vector<VoxelChunk> chunks;
+
+World world(5, 12345);
 
 float x, y, z;
 
@@ -109,9 +115,17 @@ int main()
 	//chunk.generateTerrain();
 	//chunk.generateSimpleHills();
 	//chunk.generateMountains();
-	chunk.generateTerrain();
+	//chunk.generateTerrain();
 
-	testBlock.init("grass_block_top.png");
+	//testBlock.init("grass_block_top.png");
+
+	//for (int i = 0; i < 4; i++) {
+	//	for(int j = 0; j < 4; j++) {
+	//		chunks.push_back(VoxelChunk(glm::vec3(-8 + i * 16, -32, -8 + j * 16), 2362436 + i * 10 + j * 100));
+	//		chunks.back().generateTerrain();
+	//	}
+	//}
+
 
 	launchObjects.init();
 
@@ -259,7 +273,34 @@ int main()
 
 		//sphere.render(shader, deltaTime);
 
-		chunk.render(shader);
+		//chunk.render(shader);
+
+		//for (auto& c : chunks)
+		//	c.render(shader);
+
+		static bool firstFrame = true;
+		if (firstFrame) {
+			std::cout << "Camera starting position: ("
+				<< currentCam->cameraPos.x << ", "
+				<< currentCam->cameraPos.y << ", "
+				<< currentCam->cameraPos.z << ")" << std::endl;
+			firstFrame = false;
+		}
+
+		world.update(currentCam->cameraPos); // Update world based on camera position
+
+		// Also add this right before world.render(shader):
+		static int frameCount = 0;
+		frameCount++;
+		if (frameCount % 60 == 0) { // Every 60 frames
+			std::cout << "Frame " << frameCount << " - Camera at: ("
+				<< currentCam->cameraPos.x << ", "
+				<< currentCam->cameraPos.y << ", "
+				<< currentCam->cameraPos.z << ")" << std::endl;
+		}
+
+		world.render(shader);
+
 
 		//lampShader.activate();
 		//lampShader.setMat4("view", view);
@@ -270,7 +311,12 @@ int main()
 		screen.newFrame();
 	}
 
-	testBlock.cleanup();
+	//for (auto& c : chunks)
+	//	c.cleanup();
+
+	world.cleanup();
+
+	//testBlock.cleanup();
 
 	launchObjects.cleanup();
 
