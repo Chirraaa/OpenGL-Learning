@@ -22,13 +22,14 @@
 #include "graphics/models/lamp.hpp"
 #include "graphics/models/gun.hpp"
 #include "graphics/models/sphere.hpp"
-
+#include "graphics/models/voxel.hpp"
 
 #include "io/Keyboard.h"
 #include "io/Mouse.h"
 #include "io/Camera.h"
 #include "io/Screen.h"
 #include "physics/Environment.h"
+#include "graphics/models/voxelchunk.hpp"
 
 
 
@@ -50,6 +51,8 @@ unsigned int SCREEN_WIDTH = 800, SCREEN_HEIGHT = 600;
 
 Screen screen;
 
+
+VoxelChunk chunk(glm::vec3(-5, -2, -5));
 
 float x, y, z;
 
@@ -101,6 +104,8 @@ int main()
 
 	//sphere.init();
 
+	chunk.create_chunk();
+
 	launchObjects.init();
 
 	glm::vec3 cubePositions[] = {
@@ -123,9 +128,9 @@ int main()
 	//}
 
 
-	DirLight dirLight = { glm::vec3(-0.2f, -1.0f, -0.3f),
-		glm::vec4(0.1f,0.1f,0.1f,0.1),
-		glm::vec4(0.4f,0.4f,0.4f,1.0f),
+	DirLight dirLight = { glm::vec3(0.0f, -1.0f, -0.5f),
+		glm::vec4(0.1f,0.1f,0.1f,0.1f),
+		glm::vec4(1.0f,1.0f,1.0f,1.0f),
 		glm::vec4(0.75f,0.75f,0.75f,1.0f) };
 
 
@@ -152,14 +157,14 @@ int main()
 	//	lamps[i].init();
 	//}
 
-	LampArray lamps;
-	lamps.init();
-	for (unsigned int i = 0; i < 4; i++) {
-		lamps.lightInstances.push_back({pointLightPositions[i], 
-			k0, k1, k2, 
-			ambient, diffuse, specular 
-			});
-	}
+	//LampArray lamps;
+	//lamps.init();
+	//for (unsigned int i = 0; i < 4; i++) {
+	//	lamps.lightInstances.push_back({ pointLightPositions[i],
+	//		k0, k1, k2,
+	//		ambient, diffuse, specular
+	//		});
+	//}
 
 
 	SpotLight spotLight = {
@@ -192,16 +197,16 @@ int main()
 
 		dirLight.render(shader);
 
-		for (unsigned int i = 0; i < 4; i++) {
-			lamps.lightInstances[i].render(shader, i);
-		}
+		//for (unsigned int i = 0; i < 4; i++) {
+		//	lamps.lightInstances[i].render(shader, i);
+		//}
 
-		shader.setInt("noPointLights", 4);
+		shader.setInt("noPointLights", 0);
 
 		spotLight.position = currentCam->cameraPos;
 		spotLight.direction = currentCam->cameraFront;
 		spotLight.render(shader, 0);
-		shader.setInt("noSpotLights", 1);
+		shader.setInt("noSpotLights", 0);
 
 		// create transformation for screen
 
@@ -247,11 +252,13 @@ int main()
 
 		//sphere.render(shader, deltaTime);
 
-		lampShader.activate();
-		lampShader.setMat4("view", view);
-		lampShader.setMat4("projection", projection);
+		chunk.render(shader);
 
-		lamps.render(lampShader, deltaTime);
+		//lampShader.activate();
+		//lampShader.setMat4("view", view);
+		//lampShader.setMat4("projection", projection);
+
+		//lamps.render(lampShader, deltaTime);
 
 		screen.newFrame();
 	}
@@ -262,8 +269,16 @@ int main()
 	//	cubes[i].cleanup();
 
 	//sphere.cleanup();
+	//dirtBlock.cleanup();
+	//for (int i = 0; i < 4; i++) {
+	//	for (int j = 0; j < planeBlocks[i].size(); j++) {
+	//		planeBlocks[i][j].cleanup();
+	//	}
+	//}
 
-	lamps.cleanup();
+	chunk.cleanup();
+
+	//lamps.cleanup();
 
 	glfwTerminate();
 	return 0;

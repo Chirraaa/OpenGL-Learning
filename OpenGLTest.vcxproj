@@ -56,6 +56,8 @@
     <ClInclude Include="src\graphics\models\lamp.hpp" />
     <ClInclude Include="src\graphics\models\modelarray.hpp" />
     <ClInclude Include="src\graphics\models\sphere.hpp" />
+    <ClInclude Include="src\graphics\models\voxel.hpp" />
+    <ClInclude Include="src\graphics\models\voxelchunk.hpp" />
     <ClInclude Include="src\graphics\Texture.h" />
     <ClInclude Include="src\io\Camera.h" />
     <ClInclude Include="src\io\Joystick.h" />
@@ -69,6 +71,12 @@
   <ItemGroup>
     <Image Include="assets\image1.jpg" />
     <Image Include="assets\image2.jpg" />
+    <Image Include="assets\textures\cobblestone.png" />
+    <Image Include="assets\textures\dirt.png" />
+    <Image Include="assets\textures\grass_block_side.png" />
+    <Image Include="assets\textures\grass_block_side_overlay.png" />
+    <Image Include="assets\textures\grass_block_top.png" />
+    <Image Include="assets\textures\sand.png" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

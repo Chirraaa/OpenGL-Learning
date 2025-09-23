@@ -133,12 +133,36 @@
     <ClInclude Include="src\graphics\models\modelarray.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\graphics\models\voxel.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\graphics\models\voxelchunk.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\image1.jpg">
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="assets\image2.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\cobblestone.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\dirt.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\grass_block_side.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\grass_block_side_overlay.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\grass_block_top.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\sand.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

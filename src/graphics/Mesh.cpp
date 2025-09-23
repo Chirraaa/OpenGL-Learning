@@ -31,6 +31,9 @@ Mesh::Mesh() {}
 
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures)
 	: vertices(vertices), indices(indices), textures(textures) {
+
+	noTex = textures.empty();
+
 	setup();
 }
 
@@ -46,6 +49,9 @@ void Mesh::render(Shader shader) {
 		shader.setInt("noTex", 1);
 	}
 	else {
+
+		shader.setInt("noTex", 0);
+
 		// textures
 		unsigned int diffuseIdx = 0;
 		unsigned int specularIdx = 0;
@@ -107,4 +113,10 @@ void Mesh::setup() {
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
 
 	glBindVertexArray(0);
+}
+
+void Mesh::setUseTexture(bool useTexture) {
+	// If useTexture is true, we want noTex to be false.
+	// If useTexture is false, we want noTex to be true.
+	noTex = !useTexture;
 }

@@ -18,7 +18,7 @@ void Texture::load(bool flip) {
 
 	int width, height, nChannels;
 
-	unsigned char* data = stbi_load((dir + "/" + path).c_str(), & width, & height, & nChannels, 0);
+	unsigned char* data = stbi_load((dir + "/" + path).c_str(), &width, &height, &nChannels, 0);
 
 	GLenum colorMode = GL_RGB;
 	switch (nChannels) {
@@ -41,6 +41,9 @@ void Texture::load(bool flip) {
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 
 	}
