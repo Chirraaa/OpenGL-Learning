@@ -1,12 +1,13 @@
 #include "World.h"
-#include "../models/voxelchunk.hpp"  // Include the full definition here
+#include "../models/voxelchunk.hpp"
 #include "../Shader.h"
 #include <iostream>
 #include <vector>
 #include <cmath>
 
 World::World(int renderDist, unsigned int seed)
-    : renderDistance(renderDist), worldSeed(seed), lastPlayerPos(0.0f) {
+    : renderDistance(renderDist), worldSeed(seed), lastPlayerPos(0.0f),
+    worldNoise(seed) { // Initialize world-level noise generator
     std::cout << "Created world with render distance: " << renderDistance << std::endl;
 }
 
@@ -15,22 +16,60 @@ World::~World() {
 }
 
 long long World::getChunkKey(int chunkX, int chunkZ) {
-    // Combine chunk coordinates into a single key
-    // Use bit shifting to avoid collisions
     return (static_cast<long long>(chunkX) << 32) | (static_cast<long long>(chunkZ) & 0xFFFFFFFF);
 }
 
 void World::getChunkCoords(glm::vec3 worldPos, int& chunkX, int& chunkZ) {
-    // Assuming each chunk is 16x16 blocks (CHUNK_SIZE from VoxelChunk)
     const int CHUNK_SIZE = 16;
-
-    // Convert world position to chunk coordinates
     chunkX = static_cast<int>(std::floor(worldPos.x / CHUNK_SIZE));
     chunkZ = static_cast<int>(std::floor(worldPos.z / CHUNK_SIZE));
 }
 
+// NEW: World-level terrain generation function
+float World::getTerrainHeight(float worldX, float worldZ) {
+    // Use consistent noise sampling across the entire world
+    double noiseValue = worldNoise.fractalNoise(
+        worldX * 0.01,   // Scale factor
+        worldZ * 0.01,
+        4,               // Octaves
+        0.5,             // Persistence
+        1.0              // Lacunarity
+    );
+
+    int baseHeight = 32;
+    int variation = 16;
+    int height = baseHeight + (int)(noiseValue * variation);
+    return std::max(0.0f, std::min((float)height, 63.0f)); // Clamp to chunk height
+}
+
+// NEW: World-level biome/block type determination
+VoxelType World::getBlockType(float worldX, float worldY, float worldZ, float terrainHeight) {
+    int seaLevel = 34;
+    int y = (int)worldY;
+
+    if (terrainHeight < seaLevel) {
+        // Beach/underwater biome
+        if (y <= terrainHeight) {
+            return VoxelType::SAND;
+        }
+    }
+    else {
+        // Land biome
+        if (y == (int)terrainHeight) {
+            return VoxelType::GRASS; // Top layer
+        }
+        else if (y >= (int)terrainHeight - 3) {
+            return VoxelType::DIRT;  // Subsurface
+        }
+        else if (y <= (int)terrainHeight) {
+            return VoxelType::COBBLESTONE; // Deep layers
+        }
+    }
+
+    return VoxelType::DIRT; // Fallback
+}
+
 void World::update(glm::vec3 playerPos) {
-    // Debug output
     static bool firstUpdate = true;
     if (firstUpdate) {
         std::cout << "First world update at player position: ("
@@ -38,9 +77,8 @@ void World::update(glm::vec3 playerPos) {
         firstUpdate = false;
     }
 
-    // Check if player moved far enough to require chunk updates
     float distanceMoved = glm::length(playerPos - lastPlayerPos);
-    if (distanceMoved > 8.0f || glm::length(lastPlayerPos) == 0.0f) { // Also update on first call
+    if (distanceMoved > 8.0f || glm::length(lastPlayerPos) == 0.0f) {
         std::cout << "Updating chunks - distance moved: " << distanceMoved << std::endl;
         generateChunksAroundPosition(playerPos);
         unloadDistantChunks(playerPos);
@@ -55,24 +93,19 @@ void World::generateChunksAroundPosition(glm::vec3 pos) {
 
     std::cout << "Player at chunk coordinates: (" << playerChunkX << ", " << playerChunkZ << ")" << std::endl;
 
-    // Generate chunks in a square around the player
     for (int x = playerChunkX - renderDistance; x <= playerChunkX + renderDistance; x++) {
         for (int z = playerChunkZ - renderDistance; z <= playerChunkZ + renderDistance; z++) {
-            // Only generate chunks within circular render distance
             if (shouldLoadChunk(x, z, playerChunkX, playerChunkZ)) {
                 long long key = getChunkKey(x, z);
 
-                // Check if chunk already exists
                 if (chunks.find(key) == chunks.end()) {
-                    // Create new chunk at world position
                     glm::vec3 chunkWorldPos(x * 16.0f, 0.0f, z * 16.0f);
 
-                    // Create chunk with world seed modified by chunk coordinates for variation
-                    unsigned int chunkSeed = worldSeed + x * 1000 + z;
-                    auto newChunk = std::make_unique<VoxelChunk>(chunkWorldPos, chunkSeed);
+                    // Pass the world instance to chunk for homogeneous generation
+                    auto newChunk = std::make_unique<VoxelChunk>(chunkWorldPos, worldSeed);
 
-                    // Generate terrain for the chunk
-                    newChunk->generateTerrain();
+                    // Generate terrain using world-level functions
+                    generateChunkTerrain(newChunk.get(), x, z);
 
                     chunks[key] = std::move(newChunk);
                     std::cout << "Generated chunk at chunk coords (" << x << ", " << z
@@ -83,6 +116,36 @@ void World::generateChunksAroundPosition(glm::vec3 pos) {
     }
 }
 
+// NEW: Generate terrain for a specific chunk using world-level noise
+void World::generateChunkTerrain(VoxelChunk* chunk, int chunkX, int chunkZ) {
+    const int CHUNK_SIZE = 16;
+    const int CHUNK_HEIGHT = 64;
+
+    // Clear any existing voxels
+    chunk->clearVoxels();
+
+    for (int localX = 0; localX < CHUNK_SIZE; localX++) {
+        for (int localZ = 0; localZ < CHUNK_SIZE; localZ++) {
+            // Convert to world coordinates
+            float worldX = chunkX * CHUNK_SIZE + localX;
+            float worldZ = chunkZ * CHUNK_SIZE + localZ;
+
+            // Get terrain height using world-level noise
+            float terrainHeight = getTerrainHeight(worldX, worldZ);
+
+            // Generate vertical column
+            for (int y = 0; y < CHUNK_HEIGHT; y++) {
+                if (y <= terrainHeight) {
+                    VoxelType blockType = getBlockType(worldX, y, worldZ, terrainHeight);
+                    chunk->addVoxel(localX, y, localZ, blockType);
+                }
+            }
+        }
+    }
+
+    chunk->markForRebuild();
+}
+
 void World::unloadDistantChunks(glm::vec3 playerPos) {
     int playerChunkX, playerChunkZ;
     getChunkCoords(playerPos, playerChunkX, playerChunkZ);
@@ -91,23 +154,19 @@ void World::unloadDistantChunks(glm::vec3 playerPos) {
 
     for (const auto& pair : chunks) {
         long long key = pair.first;
-
-        // Extract chunk coordinates from key
         int chunkX = static_cast<int>(key >> 32);
         int chunkZ = static_cast<int>(key & 0xFFFFFFFF);
 
-        // Check if chunk is too far away (add buffer to prevent constant loading/unloading)
         if (!shouldLoadChunk(chunkX, chunkZ, playerChunkX, playerChunkZ, renderDistance + 2)) {
             chunksToRemove.push_back(key);
         }
     }
 
-    // Remove distant chunks
     for (long long key : chunksToRemove) {
         int chunkX = static_cast<int>(key >> 32);
         int chunkZ = static_cast<int>(key & 0xFFFFFFFF);
 
-        chunks[key]->cleanup(); // Clean up GPU resources
+        chunks[key]->cleanup();
         chunks.erase(key);
         std::cout << "Unloaded chunk at (" << chunkX << ", " << chunkZ << ")" << std::endl;
     }
@@ -124,15 +183,13 @@ bool World::shouldLoadChunk(int chunkX, int chunkZ, int playerChunkX, int player
 }
 
 void World::render(Shader& shader) {
-    // Debug output - only print occasionally
     static int renderCallCount = 0;
     renderCallCount++;
 
-    if (renderCallCount % 60 == 0) { // Every 60 frames
+    if (renderCallCount % 60 == 0) {
         std::cout << "Rendering " << chunks.size() << " chunks" << std::endl;
     }
 
-    // Render all loaded chunks
     int chunksRendered = 0;
     for (const auto& pair : chunks) {
         VoxelChunk* chunk = pair.second.get();
@@ -165,24 +222,20 @@ VoxelType* World::getBlockAt(glm::vec3 worldPos) {
     VoxelChunk* chunk = getChunk(chunkX, chunkZ);
     if (!chunk) return nullptr;
 
-    // Calculate local coordinates within the chunk
     const int CHUNK_SIZE = 16;
     int localX = static_cast<int>(worldPos.x) - (chunkX * CHUNK_SIZE);
     int localZ = static_cast<int>(worldPos.z) - (chunkZ * CHUNK_SIZE);
     int localY = static_cast<int>(worldPos.y);
 
-    // Make sure coordinates are within chunk bounds
     if (localX < 0) localX += CHUNK_SIZE;
     if (localZ < 0) localZ += CHUNK_SIZE;
 
     if (localX >= 0 && localX < CHUNK_SIZE &&
         localZ >= 0 && localZ < CHUNK_SIZE &&
-        localY >= 0 && localY < 64 && // CHUNK_HEIGHT
+        localY >= 0 && localY < 64 &&
         chunk->hasVoxel(localX, localY, localZ)) {
 
-        // This would need to be implemented in VoxelChunk to return a pointer
-        // For now, return nullptr - you'd need to modify VoxelChunk class
-        return nullptr;
+        return nullptr; // You'd need to modify VoxelChunk to return the actual type
     }
 
     return nullptr;

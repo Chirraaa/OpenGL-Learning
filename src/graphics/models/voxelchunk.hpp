@@ -32,12 +32,32 @@ private:
 	std::map<VoxelType, VoxelTextures> voxelTextures;
 	bool needsRebuild = true;
 	bool texturesLoaded = false;
-	PerlinNoise perlinNoise;
+	PerlinNoise perlinNoise; // Keep for backward compatibility, but World will handle generation
 
 public:
+	// UPDATED: Constructor no longer automatically generates terrain
 	VoxelChunk(glm::vec3 pos, unsigned int seed = 2362436)
 		: chunkPosition(pos), perlinNoise(seed) {
+		// Don't generate terrain automatically - let World handle it
 	}
+
+	// NEW: Methods for homogeneous world generation
+	void clearVoxels() {
+		voxels.clear();
+		needsRebuild = true;
+	}
+
+	void markForRebuild() {
+		needsRebuild = true;
+	}
+
+	glm::vec3 getChunkPosition() const {
+		return chunkPosition;
+	}
+
+	// NEW: Get chunk size constants (useful for World class)
+	static int getChunkSize() { return CHUNK_SIZE; }
+	static int getChunkHeight() { return CHUNK_HEIGHT; }
 
 	void loadTextures() {
 		if (texturesLoaded) return;
@@ -69,6 +89,8 @@ public:
 		texturesLoaded = true;
 	}
 
+	// LEGACY: Keep these terrain generation methods for backward compatibility
+	// These won't be used by the World class for homogeneous generation
 	void generateTerrain() {
 		voxels.clear();
 
@@ -228,7 +250,29 @@ public:
 	}
 
 	VoxelType getVoxelType(int x, int y, int z) const {
-		return voxels.at(x).at(y).at(z);
+		if (hasVoxel(x, y, z)) {
+			return voxels.at(x).at(y).at(z);
+		}
+		return VoxelType::DIRT; // Default fallback
+	}
+
+	// NEW: Method to get voxel type by reference (for World class)
+	VoxelType* getVoxelTypePtr(int x, int y, int z) {
+		if (hasVoxel(x, y, z)) {
+			return &voxels[x][y][z];
+		}
+		return nullptr;
+	}
+
+	// NEW: Get total number of voxels in chunk (for debugging)
+	size_t getVoxelCount() const {
+		size_t count = 0;
+		for (const auto& x_pair : voxels) {
+			for (const auto& y_pair : x_pair.second) {
+				count += y_pair.second.size();
+			}
+		}
+		return count;
 	}
 
 	void rebuildMesh() {
@@ -370,6 +414,8 @@ public:
 				mesh.clearnup();
 			}
 		}
+		chunkMeshes.clear();
+		voxels.clear();
 	}
 
 private:

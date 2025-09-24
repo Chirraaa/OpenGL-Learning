@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <memory>
 #include <glm/glm.hpp>
+#include "../../generation/perlin.h" // Include PerlinNoise
 
 // Forward declarations
 class VoxelChunk;
@@ -34,6 +35,10 @@ public:
 	void setRenderDistance(int distance) { renderDistance = distance; }
 	int getRenderDistance() const { return renderDistance; }
 
+	// NEW: World-level terrain generation functions
+	float getTerrainHeight(float worldX, float worldZ);
+	VoxelType getBlockType(float worldX, float worldY, float worldZ, float terrainHeight);
+
 private:
 	// Chunk storage using chunk coordinates as key
 	std::unordered_map<long long, std::unique_ptr<VoxelChunk>> chunks;
@@ -41,6 +46,9 @@ private:
 	// World parameters
 	int renderDistance;
 	unsigned int worldSeed;
+
+	// NEW: World-level noise generator for consistent terrain
+	PerlinNoise worldNoise;
 
 	// Current player position for chunk management
 	glm::vec3 lastPlayerPos;
@@ -53,6 +61,9 @@ private:
 
 	// Generate chunks around a position
 	void generateChunksAroundPosition(glm::vec3 pos);
+
+	// NEW: Generate terrain for a specific chunk using world-level noise
+	void generateChunkTerrain(VoxelChunk* chunk, int chunkX, int chunkZ);
 
 	// Remove chunks that are too far from player
 	void unloadDistantChunks(glm::vec3 playerPos);

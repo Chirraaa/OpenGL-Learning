@@ -58,7 +58,7 @@ VoxelChunk chunk(glm::vec3(-8, -32, -8));
 
 std::vector<VoxelChunk> chunks;
 
-World world(5, 12345);
+World world(4, 9429238);
 
 float x, y, z;
 
