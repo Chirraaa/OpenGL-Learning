@@ -27,6 +27,7 @@
     <ClCompile Include="src\graphics\Material.cpp" />
     <ClCompile Include="src\graphics\Mesh.cpp" />
     <ClCompile Include="src\graphics\Model.cpp" />
+    <ClCompile Include="src\graphics\models\voxelchunk.cpp" />
     <ClCompile Include="src\graphics\Texture.cpp" />
     <ClCompile Include="src\io\Camera.cpp" />
     <ClCompile Include="src\io\Joystick.cpp" />
@@ -37,6 +38,7 @@
     <ClCompile Include="src\graphics\Shader.cpp" />
     <ClCompile Include="src\physics\Environment.cpp" />
     <ClCompile Include="src\physics\RigidBody.cpp" />
+    <ClCompile Include="src\player\Player.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\fragment_core.glsl" />
@@ -50,6 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\generation\perlin.h" />
+    <ClInclude Include="src\graphics\env\ThreadedWorld.h" />
     <ClInclude Include="src\graphics\Light.h" />
     <ClInclude Include="src\graphics\Material.h" />
     <ClInclude Include="src\graphics\Mesh.h" />
@@ -59,6 +62,7 @@
     <ClInclude Include="src\graphics\models\lamp.hpp" />
     <ClInclude Include="src\graphics\models\modelarray.hpp" />
     <ClInclude Include="src\graphics\models\sphere.hpp" />
+    <ClInclude Include="src\graphics\models\ThreadSafeQueue.hpp" />
     <ClInclude Include="src\graphics\models\voxel.hpp" />
     <ClInclude Include="src\graphics\models\voxelchunk.hpp" />
     <ClInclude Include="src\graphics\Texture.h" />
@@ -71,6 +75,7 @@
     <ClInclude Include="src\graphics\Shader.h" />
     <ClInclude Include="src\physics\Environment.h" />
     <ClInclude Include="src\physics\RigidBody.h" />
+    <ClInclude Include="src\player\Player.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\image1.jpg" />

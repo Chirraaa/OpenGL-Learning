@@ -54,7 +54,7 @@ unsigned int SCREEN_WIDTH = 800, SCREEN_HEIGHT = 600;
 Screen screen;
 
 
-VoxelChunk chunk(glm::vec3(-8, -32, -8));
+//VoxelChunk chunk(glm::vec3(-8, -32, -8));
 
 std::vector<VoxelChunk> chunks;
 
@@ -331,7 +331,7 @@ int main()
 	//	}
 	//}
 
-	chunk.cleanup();
+	//chunk.cleanup();
 
 	//lamps.cleanup();
 
