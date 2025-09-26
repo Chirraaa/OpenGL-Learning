@@ -41,6 +41,8 @@
     <ClCompile Include="src\player\Player.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="assets\crosshair.fs" />
+    <None Include="assets\crosshair.vs" />
     <None Include="assets\fragment_core.glsl" />
     <None Include="assets\fragment_core2.glsl" />
     <None Include="assets\lamp.fs" />
@@ -48,6 +50,8 @@
     <None Include="assets\models\scene.gltf" />
     <None Include="assets\models\sphere\scene.bin" />
     <None Include="assets\models\sphere\scene.gltf" />
+    <None Include="assets\selection.fs" />
+    <None Include="assets\selection.vs" />
     <None Include="assets\vertex_core.glsl" />
   </ItemGroup>
   <ItemGroup>

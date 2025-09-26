@@ -89,6 +89,10 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="assets\models\sphere\scene.gltf" />
+    <None Include="assets\selection.fs" />
+    <None Include="assets\selection.vs" />
+    <None Include="assets\crosshair.fs" />
+    <None Include="assets\crosshair.vs" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\graphics\Shader.h">

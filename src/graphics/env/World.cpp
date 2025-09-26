@@ -6,7 +6,6 @@
 #include <cmath>
 #include <thread>
 
-// MODIFIED: Constructor now starts the worker threads.
 World::World(int renderDist, unsigned int seed)
 	: renderDistance(renderDist),
 	worldSeed(seed),
@@ -15,7 +14,6 @@ World::World(int renderDist, unsigned int seed)
 	m_isRunning(true) {
 	std::cout << "Created world with render distance: " << renderDistance << std::endl;
 
-	// NEW: Start worker threads. We use a number based on hardware concurrency, but at least 1.
 	unsigned int numThreads = std::max(1u, std::thread::hardware_concurrency());
 	std::cout << "Starting " << numThreads << " chunk worker threads." << std::endl;
 	for (unsigned int i = 0; i < numThreads; ++i) {
@@ -23,11 +21,10 @@ World::World(int renderDist, unsigned int seed)
 	}
 }
 
-// MODIFIED: Destructor now safely stops and joins the worker threads.
 World::~World() {
 	std::cout << "Stopping worker threads..." << std::endl;
 	m_isRunning = false;
-	m_chunksToLoadQueue.stop(); // Wake up any sleeping threads
+	m_chunksToLoadQueue.stop();
 	for (auto& worker : m_chunkWorkers) {
 		if (worker.joinable()) {
 			worker.join();
@@ -54,12 +51,10 @@ float World::getTerrainHeight(float worldX, float worldZ) {
 	return std::max(0.0f, std::min(static_cast<float>(height), 63.0f));
 }
 
-
 VoxelType World::getBlockType(float worldX, float worldY, float worldZ, float terrainHeight) {
 	int seaLevel = 34;
 	int y = static_cast<int>(worldY);
 
-	// FIXED: Return AIR for blocks above terrain
 	if (y > terrainHeight) return VoxelType::AIR;
 
 	if (terrainHeight < seaLevel && y <= terrainHeight) {
@@ -77,7 +72,6 @@ VoxelType World::getBlockType(float worldX, float worldY, float worldZ, float te
 	}
 }
 
-// MODIFIED: Update now handles both queueing new chunks and uploading finished ones.
 void World::update(glm::vec3 playerPos) {
 	float distanceMoved = glm::length(playerPos - lastPlayerPos);
 	if (distanceMoved > 8.0f || glm::length(lastPlayerPos) == 0.0f) {
@@ -86,21 +80,21 @@ void World::update(glm::vec3 playerPos) {
 		lastPlayerPos = playerPos;
 	}
 
-	// NEW: Process the queue of finished meshes from worker threads.
-	// We limit the number of uploads per frame to prevent a single frame from
-	// stuttering if many chunks finish at once.
 	int uploadsThisFrame = 0;
 	const int maxUploadsPerFrame = 2;
 	ChunkMeshData meshData;
 	while (uploadsThisFrame < maxUploadsPerFrame && m_meshesToUploadQueue.try_pop(meshData)) {
 		long long key = meshData.chunkKey;
 
-		// Create a new chunk and upload the mesh data to the GPU
 		auto newChunk = std::make_unique<VoxelChunk>(meshData.chunkPosition, worldSeed);
-		newChunk->uploadMesh(meshData); // This performs the OpenGL calls
+
+		// This now works because both are unordered_maps
+		newChunk->voxels = std::move(meshData.voxels);
+
+		newChunk->uploadMesh(meshData);
 		chunks[key] = std::move(newChunk);
 
-		{ // Remove from the generating set
+		{
 			std::lock_guard<std::mutex> lock(m_worldMutex);
 			m_generatingChunks.erase(key);
 		}
@@ -109,7 +103,34 @@ void World::update(glm::vec3 playerPos) {
 	}
 }
 
-// MODIFIED: This function now just adds chunk coordinates to a queue.
+void World::setBlock(int worldX, int worldY, int worldZ, VoxelType type) {
+	int chunkX, chunkZ;
+	getChunkCoords(glm::vec3(worldX, worldY, worldZ), chunkX, chunkZ);
+	VoxelChunk* chunk = getChunk(chunkX, chunkZ);
+
+	if (chunk) {
+		int localX = worldX - (chunkX * CHUNK_SIZE);
+		int localZ = worldZ - (chunkZ * CHUNK_SIZE);
+
+		chunk->setBlock(localX, worldY, localZ, type);
+		chunk->rebuildMesh();
+	}
+}
+
+VoxelType World::getBlockTypeAt(int worldX, int worldY, int worldZ) {
+	int chunkX, chunkZ;
+	getChunkCoords(glm::vec3(worldX, worldY, worldZ), chunkX, chunkZ);
+	VoxelChunk* chunk = getChunk(chunkX, chunkZ);
+
+	if (chunk) {
+		int localX = worldX - (chunkX * CHUNK_SIZE);
+		int localZ = worldZ - (chunkZ * CHUNK_SIZE);
+		// CORRECTED: Call the renamed function getBlockType
+		return chunk->getBlockType(localX, worldY, localZ);
+	}
+	return VoxelType::AIR;
+}
+
 void World::generateChunksAroundPosition(glm::vec3 pos) {
 	int playerChunkX, playerChunkZ;
 	getChunkCoords(pos, playerChunkX, playerChunkZ);
@@ -120,7 +141,6 @@ void World::generateChunksAroundPosition(glm::vec3 pos) {
 				long long key = getChunkKey(x, z);
 
 				std::lock_guard<std::mutex> lock(m_worldMutex);
-				// Queue the chunk for loading if it doesn't exist and isn't already being generated.
 				if (chunks.find(key) == chunks.end() && m_generatingChunks.find(key) == m_generatingChunks.end()) {
 					m_generatingChunks.insert(key);
 					m_chunksToLoadQueue.push(glm::ivec2(x, z));
@@ -130,19 +150,16 @@ void World::generateChunksAroundPosition(glm::vec3 pos) {
 	}
 }
 
-// NEW: This is the heart of the asynchronous system. This function is run by each worker thread.
 void World::chunkWorkerLoop() {
 	while (m_isRunning) {
 		glm::ivec2 chunkCoords;
-		// Wait for a chunk to be available in the queue.
 		if (!m_chunksToLoadQueue.wait_and_pop(chunkCoords)) {
-			continue; // Queue was stopped
+			continue;
 		}
 
 		int chunkX = chunkCoords.x;
 		int chunkZ = chunkCoords.y;
 
-		// --- Step 1: Generate Voxel Data (CPU Intensive) ---
 		ChunkMeshData meshData;
 		meshData.chunkKey = getChunkKey(chunkX, chunkZ);
 		meshData.chunkPosition = glm::vec3(chunkX * 16.0f, 0.0f, chunkZ * 16.0f);
@@ -161,8 +178,6 @@ void World::chunkWorkerLoop() {
 			}
 		}
 
-		// --- Step 2: Build Mesh Data (CPU Intensive) ---
-		// This is the logic from the old VoxelChunk::rebuildMesh
 		auto hasVoxel = [&](int x, int y, int z) {
 			return meshData.voxels.count(x) && meshData.voxels.at(x).count(y) && meshData.voxels.at(x).at(y).count(z);
 			};
@@ -196,8 +211,6 @@ void World::chunkWorkerLoop() {
 				}
 			}
 		}
-
-		// --- Step 3: Push completed data to the main thread's queue ---
 		m_meshesToUploadQueue.push(std::move(meshData));
 	}
 }
@@ -241,23 +254,7 @@ VoxelChunk* World::getChunk(int chunkX, int chunkZ) {
 	return (it != chunks.end()) ? it->second.get() : nullptr;
 }
 
-Voxel* World::getBlock(int worldX, int worldY, int worldZ) {
-	int chunkX, chunkZ;
-	getChunkCoords(glm::vec3(worldX, worldY, worldZ), chunkX, chunkZ);
-
-	int localX = worldX - (chunkX * CHUNK_SIZE);
-	int localZ = worldZ - (chunkZ * CHUNK_SIZE);
-
-	if (localX < 0) localX += CHUNK_SIZE;
-	if (localZ < 0) localZ += CHUNK_SIZE;
-
-	VoxelChunk* chunk = getChunk(chunkX, chunkZ);
-	if (chunk && worldY >= 0 && worldY < CHUNK_HEIGHT) {
-		return &chunk->getBlock(localX, worldY, localZ);
-	}
-
-	return nullptr;
-}
+// CORRECTED: Removed the extra, conflicting getBlock implementation.
 
 void World::cleanup() {
 	std::cout << "Cleaning up " << chunks.size() << " chunks" << std::endl;

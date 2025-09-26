@@ -9,10 +9,15 @@ Player::Player(glm::vec3 startPos, Camera* cam, World* gameWorld) :
     velocity(0.0f),
     onGround(false) {
 
-    //// Find a safe spawn position above the terrain
-    float terrainHeight = world->getTerrainHeight(startPos.x, startPos.z);
-    position.y = terrainHeight + height + 10.0f; // Spawn 2 blocks above terrain
+    // Ensure player starts at a valid position
+    // Find terrain height at spawn position
+    //float terrainHeight = world->getTerrainHeight(startPos.x, startPos.z);
 
+    // Place player on top of terrain
+    //position.y = terrainHeight + 1.0f;
+
+    std::cout << "Player spawned at: (" << position.x << ", " << position.y << ", " << position.z << ")" << std::endl;
+    //std::cout << "Terrain height at spawn: " << terrainHeight << std::endl;
 
     updateCamera();
 }
@@ -53,7 +58,7 @@ void Player::update(float dt) {
     resolveCollisions(newPosition);
 
     position = newPosition;
-    validatePosition();
+    //validatePosition();
     updateCamera();
 }
 
@@ -122,6 +127,7 @@ void Player::resolveCollisions(glm::vec3& newPosition) {
 }
 
 bool Player::checkCollision(glm::vec3 newPosition) {
+    // Player bounding box
     float minX = newPosition.x - width / 2.0f;
     float maxX = newPosition.x + width / 2.0f;
     float minY = newPosition.y;
@@ -129,27 +135,41 @@ bool Player::checkCollision(glm::vec3 newPosition) {
     float minZ = newPosition.z - depth / 2.0f;
     float maxZ = newPosition.z + depth / 2.0f;
 
-    for (int x = static_cast<int>(floor(minX)); x <= static_cast<int>(floor(maxX)); x++) {
-        for (int y = static_cast<int>(floor(minY)); y <= static_cast<int>(floor(maxY)); y++) {
-            for (int z = static_cast<int>(floor(minZ)); z <= static_cast<int>(floor(maxZ)); z++) {
-                if (isBlockSolid(x, y, z)) {
-                    return true;
+    // Check all blocks that might intersect with player
+    int minBlockX = static_cast<int>(std::floor(minX));
+    int maxBlockX = static_cast<int>(std::floor(maxX));
+    int minBlockY = static_cast<int>(std::floor(minY));
+    int maxBlockY = static_cast<int>(std::floor(maxY));
+    int minBlockZ = static_cast<int>(std::floor(minZ));
+    int maxBlockZ = static_cast<int>(std::floor(maxZ));
+
+    for (int blockX = minBlockX; blockX <= maxBlockX; blockX++) {
+        for (int blockY = minBlockY; blockY <= maxBlockY; blockY++) {
+            for (int blockZ = minBlockZ; blockZ <= maxBlockZ; blockZ++) {
+                if (isBlockSolid(blockX, blockY, blockZ)) {
+                    // Block occupies space from (blockX, blockY, blockZ) to (blockX+1, blockY+1, blockZ+1)
+                    float blockMinX = blockX;
+                    float blockMaxX = blockX + 1.0f;
+                    float blockMinY = blockY;
+                    float blockMaxY = blockY + 1.0f;
+                    float blockMinZ = blockZ;
+                    float blockMaxZ = blockZ + 1.0f;
+
+                    // Check if player bounding box intersects with block bounding box
+                    if (maxX > blockMinX && minX < blockMaxX &&
+                        maxY > blockMinY && minY < blockMaxY &&
+                        maxZ > blockMinZ && minZ < blockMaxZ) {
+                        return true;
+                    }
                 }
             }
         }
     }
-
     return false;
 }
 
 bool Player::isBlockSolid(int x, int y, int z) {
-    // Check if we're below terrain level
-    float terrainHeight = world->getTerrainHeight(x, z);
-    if (y > terrainHeight) {
-        return false; // Air above terrain
-    }
-
-    VoxelType blockType = world->getBlockType(x, y, z, terrainHeight);
+    VoxelType blockType = world->getBlockTypeAt(x, y, z);
     return blockType != VoxelType::AIR;
 }
 

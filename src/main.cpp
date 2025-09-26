@@ -50,6 +50,15 @@ Camera cameras[2] = {
 
 
 
+Shader selectionShader;
+unsigned int selectionVAO, selectionVBO;
+bool blockSelected = false;
+glm::ivec3 selectedBlockPos;
+
+Shader crosshairShader;
+unsigned int crosshairVAO, crosshairVBO;
+
+
 
 double deltaTime = 0.0f;
 double lastFrame = 0.0f;
@@ -82,6 +91,12 @@ Voxel testBlock;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(double dt);
 
+void setupSelectionOutline();
+void renderSelectionOutline(const glm::mat4& view, const glm::mat4& projection);
+void setupCrosshair();
+void renderCrosshair();
+void performRaycasting();
+void processInput(double dt);
 
 int main()
 {
@@ -111,6 +126,12 @@ int main()
 	Shader shader("assets/vertex_core.glsl", "assets/fragment_core.glsl");
 	Shader lampShader("assets/vertex_core.glsl", "assets/lamp.fs");
 
+	selectionShader = Shader("assets/selection.vs", "assets/selection.fs");
+	crosshairShader = Shader("assets/crosshair.vs", "assets/crosshair.fs");
+
+	// SETUP RENDERING OBJECTS
+	setupSelectionOutline();
+	setupCrosshair();
 
 	// Models
 	//Model m(glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.05f), true);
@@ -220,6 +241,9 @@ int main()
 
 		processInput(deltaTime);
 
+		performRaycasting();
+
+
 		screen.update();
 
 		//player.update(deltaTime);
@@ -315,6 +339,9 @@ int main()
 
 		world.render(shader);
 
+		if (blockSelected) {
+			renderSelectionOutline(view, projection);
+		}
 
 		//lampShader.activate();
 		//lampShader.setMat4("view", view);
@@ -322,14 +349,16 @@ int main()
 
 		//lamps.render(lampShader, deltaTime);
 
+		renderCrosshair();
+
 		screen.newFrame();
 	}
 
 	//for (auto& c : chunks)
 	//	c.cleanup();
 
+
 	
-	world.cleanup();
 
 	//testBlock.cleanup();
 
@@ -349,7 +378,12 @@ int main()
 	//chunk.cleanup();
 
 	//lamps.cleanup();
+	glDeleteVertexArrays(1, &selectionVAO);
+	glDeleteBuffers(1, &selectionVBO);
+	glDeleteVertexArrays(1, &crosshairVAO);
+	glDeleteBuffers(1, &crosshairVBO);
 
+	world.cleanup();
 	glfwTerminate();
 	return 0;
 }
@@ -455,4 +489,138 @@ void processInput(double dt) {
 	if (Mouse::buttonWentDown(GLFW_MOUSE_BUTTON_LEFT)) {
 		launchItem(dt);
 	}
+
+	if (Mouse::buttonWentDown(GLFW_MOUSE_BUTTON_RIGHT)) {
+		if (blockSelected) {
+			world.setBlock(selectedBlockPos.x, selectedBlockPos.y, selectedBlockPos.z, VoxelType::AIR);
+			blockSelected = false; // Deselect after breaking
+		}
+	}
+}
+
+// helper
+glm::ivec3 worldToBlockCoords(glm::vec3 worldPos) {
+	return glm::ivec3(
+		static_cast<int>(std::floor(worldPos.x)),
+		static_cast<int>(std::floor(worldPos.y)),
+		static_cast<int>(std::floor(worldPos.z))
+	);
+}
+
+void performRaycasting() {
+	const float maxDist = 6.0f;
+	const float stepSize = 0.05f;
+
+	glm::vec3 rayStart = currentCam->cameraPos;
+	glm::vec3 rayDir = glm::normalize(currentCam->cameraFront);
+
+	blockSelected = false;
+
+	for (float distance = 0.0f; distance < maxDist; distance += stepSize) {
+		glm::vec3 currentPos = rayStart + rayDir * distance;
+
+		// Block coordinates (blocks occupy integer coordinate ranges)
+		glm::ivec3 blockPos = glm::ivec3(
+			static_cast<int>(std::floor(currentPos.x)),
+			static_cast<int>(std::floor(currentPos.y)),
+			static_cast<int>(std::floor(currentPos.z))
+		);
+
+		VoxelType type = world.getBlockTypeAt(blockPos.x, blockPos.y, blockPos.z);
+
+		if (type != VoxelType::AIR) {
+			blockSelected = true;
+			selectedBlockPos = blockPos;
+			return;
+		}
+	}
+}
+
+void setupSelectionOutline() {
+	// UPDATED vertices to be centered around (0,0,0)
+	// The small offset (0.505) makes the box slightly larger to avoid graphical glitches.
+	float s = 0.505f;
+	float vertices[] = {
+		// 4 lines along X axis
+		-s, -s, -s,   s, -s, -s,
+		-s,  s, -s,   s,  s, -s,
+		-s, -s,  s,   s, -s,  s,
+		-s,  s,  s,   s,  s,  s,
+		// 4 lines along Y axis
+		-s, -s, -s,  -s,  s, -s,
+		 s, -s, -s,   s,  s, -s,
+		-s, -s,  s,  -s,  s,  s,
+		 s, -s,  s,   s,  s,  s,
+		 // 4 lines along Z axis
+		 -s, -s, -s,  -s, -s,  s,
+		  s, -s, -s,   s, -s,  s,
+		 -s,  s, -s,  -s,  s,  s,
+		  s,  s, -s,   s,  s,  s
+	};
+	glGenVertexArrays(1, &selectionVAO);
+	glGenBuffers(1, &selectionVBO);
+	glBindVertexArray(selectionVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, selectionVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void renderSelectionOutline(const glm::mat4& view, const glm::mat4& projection) {
+	selectionShader.activate();
+
+	glm::vec3 outlinePos = glm::vec3(selectedBlockPos) + glm::vec3(0.5f, 0.5f, 0.5f);
+	glm::mat4 model = glm::translate(glm::mat4(1.0f), outlinePos);
+
+	selectionShader.setMat4("model", model);
+	selectionShader.setMat4("view", view);
+	selectionShader.setMat4("projection", projection);
+
+	glLineWidth(2.0f);
+	glBindVertexArray(selectionVAO);
+	glDrawArrays(GL_LINES, 0, 24);
+	glBindVertexArray(0);
+}
+
+void setupCrosshair() {
+	float vertices[] = {
+		// Horizontal line
+		-0.008f,  0.0f,
+		 0.008f,  0.0f,
+		 // Vertical line
+		  0.0f, -0.01f,
+		  0.0f,  0.01f
+	};
+	glGenVertexArrays(1, &crosshairVAO);
+	glGenBuffers(1, &crosshairVBO);
+	glBindVertexArray(crosshairVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, crosshairVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void renderCrosshair() {
+	glDisable(GL_DEPTH_TEST); // Draw on top of everything
+
+	crosshairShader.activate();
+	// Use an orthographic projection for 2D rendering
+	glm::mat4 projection = glm::ortho(0.0f, (float)SCREEN_WIDTH, 0.0f, (float)SCREEN_HEIGHT);
+	// Move the crosshair to the center
+	projection = glm::translate(projection, glm::vec3(SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f, 0.0f));
+	// Scale it up
+	projection = glm::scale(projection, glm::vec3(SCREEN_WIDTH, SCREEN_HEIGHT, 1.0f));
+
+	crosshairShader.setMat4("projection", projection);
+
+	glLineWidth(2.0f);
+	glBindVertexArray(crosshairVAO);
+	glDrawArrays(GL_LINES, 0, 4);
+	glBindVertexArray(0);
+
+	glEnable(GL_DEPTH_TEST); // Re-enable depth testing
 }
