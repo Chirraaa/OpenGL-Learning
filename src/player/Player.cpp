@@ -1,201 +1,176 @@
 #include "Player.h"
-#include "../physics/Environment.h"
-#include <algorithm>
-#include <iostream>
+#include "../graphics/env/World.h"
 
-Player::Player(glm::vec3 startPos, float playerHeight, float playerWidth)
-    : rb(70.0f, startPos), // 70kg default mass
-    height(playerHeight),
-    width(playerWidth),
-    depth(playerWidth),
-    walkSpeed(5.0f),
-    runSpeed(8.0f),
-    jumpForce(300.0f),
-    mouseSensitivity(0.1f),
-    groundCheckDistance(0.1f),
-    state(PlayerState::AIRBORNE),
-    isRunning(false),
-    canJump(false),
-    groundNormal(glm::vec3(0.0f, 1.0f, 0.0f))
-{
-    // Create camera at eye level
-    cameraOffset = glm::vec3(0.0f, height * 0.85f, 0.0f); // Eye level at 85% of height
-    camera = new Camera(startPos + cameraOffset);
+Player::Player(glm::vec3 startPos, Camera* cam, World* gameWorld) :
+    position(startPos),
+    camera(cam),
+    world(gameWorld),
+    width(0.8f), height(1.8f), depth(0.8f),
+    velocity(0.0f),
+    onGround(false) {
 
-    // Apply gravity from the start
-    rb.applyAcceleration(Environment::gravitationalAcceleration);
+    //// Find a safe spawn position above the terrain
+    float terrainHeight = world->getTerrainHeight(startPos.x, startPos.z);
+    position.y = terrainHeight + height + 10.0f; // Spawn 2 blocks above terrain
 
-    std::cout << "Player created at position: ("
-        << startPos.x << ", " << startPos.y << ", " << startPos.z << ")" << std::endl;
+
+    updateCamera();
 }
 
-Player::~Player() {
-    delete camera;
+Camera* Player::getCamera() {
+    return camera;
 }
 
-void Player::update(float deltaTime) {
-    // Store previous position for collision resolution
-    glm::vec3 previousPos = rb.pos;
+void Player::update(float dt) {
+    glm::vec3 prevPosition = position;
 
-    // Update physics
-    rb.update(deltaTime);
+    // Apply gravity
+    velocity.y += GRAVITY * dt;
 
-    // Basic ground collision check (you'll replace this with proper collision system later)
-    checkGroundCollision();
-
-    // Apply friction when on ground
-    if (state == PlayerState::GROUNDED) {
-        applyFriction(deltaTime);
+    // Terminal velocity
+    if (velocity.y < TERMINAL_VELOCITY) {
+        velocity.y = TERMINAL_VELOCITY;
     }
 
-    // Update player state
-    updatePlayerState();
+    // Apply friction
+    if (onGround) {
+        velocity.x *= GROUND_FRICTION;
+        velocity.z *= GROUND_FRICTION;
+    }
+    else {
+        velocity.x *= AIR_FRICTION;
+        velocity.z *= AIR_FRICTION;
+    }
 
-    // Update camera position to follow player
-    updateCameraPosition();
+    // Stop tiny movements
+    if (std::abs(velocity.x) < 0.01f) velocity.x = 0.0f;
+    if (std::abs(velocity.z) < 0.01f) velocity.z = 0.0f;
+
+    // Calculate new position
+    glm::vec3 newPosition = position + velocity * dt;
+
+    // Resolve collisions
+    resolveCollisions(newPosition);
+
+    position = newPosition;
+    validatePosition();
+    updateCamera();
 }
 
-void Player::processMovementInput(bool forward, bool backward, bool left, bool right, bool run, float deltaTime) {
-    isRunning = run;
+void Player::move(glm::vec3 direction) {
+    if (glm::length(direction) > 0.0f) {
+        direction = glm::normalize(direction);
 
-    // Calculate movement direction based on camera orientation
-    glm::vec3 movement = calculateMovementDirection(forward, backward, left, right);
-
-    if (glm::length(movement) > 0.0f) {
-        // Normalize movement vector
-        movement = glm::normalize(movement);
-
-        // Apply speed
-        float currentSpeed = isRunning ? runSpeed : walkSpeed;
-
-        // Only apply horizontal movement (don't affect Y velocity directly)
-        glm::vec3 horizontalForce = glm::vec3(movement.x, 0.0f, movement.z) * currentSpeed * rb.mass;
-
-        // Apply movement force
-        if (state == PlayerState::GROUNDED) {
-            // On ground: apply full force
-            rb.velocity.x = movement.x * currentSpeed;
-            rb.velocity.z = movement.z * currentSpeed;
-        }
-        else {
-            // In air: reduced control
-            float airControl = 0.3f;
-            rb.applyForce(horizontalForce * airControl * deltaTime);
-        }
+        // Apply movement in world space, not camera space
+        velocity.x = direction.x * MOVE_SPEED;
+        velocity.z = direction.z * MOVE_SPEED;
     }
 }
 
-void Player::processMouseInput(double deltaX, double deltaY) {
-    camera->updateCameraDirection(deltaX * mouseSensitivity, deltaY * mouseSensitivity);
+void Player::validatePosition() {
+    float terrainHeight = world->getTerrainHeight(position.x, position.z);
+    // If player is below terrain, teleport to safe position
+    if (position.y < terrainHeight) {
+        teleportToSafePosition();
+        std::cout << "Player position corrected - was below terrain" << std::endl;
+    }
 }
 
-void Player::processJumpInput() {
-    if (canJump && state == PlayerState::GROUNDED) {
-        rb.applyImpulse(glm::vec3(0.0f, 1.0f, 0.0f), jumpForce, 1.0f);
-        state = PlayerState::JUMPING;
+void Player::jump() {
+    if (onGround && canJump) {
+        velocity.y = JUMP_FORCE;
+        onGround = false;
         canJump = false;
-
-        std::cout << "Player jumped!" << std::endl;
     }
 }
 
-void Player::processScrollInput(double deltaY) {
-    camera->updateCameraZoom(deltaY);
+void Player::resolveCollisions(glm::vec3& newPosition) {
+    glm::vec3 testPos = position;
+
+    // Test X movement
+    testPos.x = newPosition.x;
+    if (checkCollision(testPos)) {
+        newPosition.x = position.x;
+        velocity.x = 0.0f;
+    }
+
+    // Test Y movement (gravity/jumping)
+    testPos = glm::vec3(newPosition.x, newPosition.y, position.z);
+    if (checkCollision(testPos)) {
+        if (velocity.y < 0.0f) {
+            // Falling - land on top of block
+            newPosition.y = std::floor(position.y);
+            onGround = true;
+            canJump = true;
+        }
+        else if (velocity.y > 0.0f) {
+            // Rising - hit ceiling
+            newPosition.y = std::floor(newPosition.y + height) - height;
+        }
+        velocity.y = 0.0f;
+    }
+    else {
+        onGround = false;
+    }
+
+    // Test Z movement
+    testPos = glm::vec3(newPosition.x, newPosition.y, newPosition.z);
+    if (checkCollision(testPos)) {
+        newPosition.z = position.z;
+        velocity.z = 0.0f;
+    }
 }
 
-void Player::applyGravity(float deltaTime) {
-    // Gravity is already applied in the constructor via rb.applyAcceleration
-    // This method exists for potential custom gravity effects
-}
+bool Player::checkCollision(glm::vec3 newPosition) {
+    float minX = newPosition.x - width / 2.0f;
+    float maxX = newPosition.x + width / 2.0f;
+    float minY = newPosition.y;
+    float maxY = newPosition.y + height;
+    float minZ = newPosition.z - depth / 2.0f;
+    float maxZ = newPosition.z + depth / 2.0f;
 
-void Player::applyFriction(float deltaTime) {
-    if (state == PlayerState::GROUNDED) {
-        float friction = 10.0f; // Friction coefficient
-
-        // Apply friction to horizontal velocity
-        glm::vec3 horizontalVel = glm::vec3(rb.velocity.x, 0.0f, rb.velocity.z);
-        float speed = glm::length(horizontalVel);
-
-        if (speed > 0.0f) {
-            glm::vec3 frictionForce = -glm::normalize(horizontalVel) * friction * rb.mass;
-            rb.applyForce(frictionForce * deltaTime);
-
-            // Prevent friction from reversing direction
-            if (glm::length(glm::vec3(rb.velocity.x, 0.0f, rb.velocity.z)) < 0.1f) {
-                rb.velocity.x = 0.0f;
-                rb.velocity.z = 0.0f;
+    for (int x = static_cast<int>(floor(minX)); x <= static_cast<int>(floor(maxX)); x++) {
+        for (int y = static_cast<int>(floor(minY)); y <= static_cast<int>(floor(maxY)); y++) {
+            for (int z = static_cast<int>(floor(minZ)); z <= static_cast<int>(floor(maxZ)); z++) {
+                if (isBlockSolid(x, y, z)) {
+                    return true;
+                }
             }
         }
     }
+
+    return false;
 }
 
-void Player::checkGroundCollision() {
-    // Simple ground collision at Y = 0 (you'll replace this with proper collision system)
-    float groundLevel = 0.0f;
-    float playerBottom = rb.pos.y - height * 0.5f;
-
-    if (playerBottom <= groundLevel && rb.velocity.y <= 0.0f) {
-        // Player is on ground
-        rb.pos.y = groundLevel + height * 0.5f;
-        rb.velocity.y = 0.0f;
-
-        if (state != PlayerState::GROUNDED) {
-            state = PlayerState::GROUNDED;
-            canJump = true;
-            std::cout << "Player landed on ground" << std::endl;
-        }
+bool Player::isBlockSolid(int x, int y, int z) {
+    // Check if we're below terrain level
+    float terrainHeight = world->getTerrainHeight(x, z);
+    if (y > terrainHeight) {
+        return false; // Air above terrain
     }
-    else if (playerBottom > groundLevel + groundCheckDistance) {
-        // Player is airborne
-        if (state == PlayerState::GROUNDED) {
-            state = PlayerState::AIRBORNE;
-            canJump = false;
-        }
-    }
+
+    VoxelType blockType = world->getBlockType(x, y, z, terrainHeight);
+    return blockType != VoxelType::AIR;
 }
 
-glm::vec3 Player::getCameraPosition() const {
-    return camera->cameraPos;
+void Player::updateCamera() {
+    // Position camera at player's eye level (near the top of the player)
+    glm::vec3 cameraPos = position + glm::vec3(0.0f, height - 0.2f, 0.0f);
+    camera->cameraPos = cameraPos;
 }
 
-glm::mat4 Player::getViewMatrix() const {
-    return camera->getViewMatrix();
+void Player::teleportToSafePosition() {
+    // Find terrain height at current X, Z position
+    float terrainHeight = world->getTerrainHeight(position.x, position.z);
+
+    // Place player safely above terrain
+    position.y = terrainHeight + height + 1.0f;
+    velocity.y = 0.0f; // Stop any falling
+
+    updateCamera();
 }
 
-void Player::setPosition(glm::vec3 position) {
-    rb.pos = position;
-    updateCameraPosition();
-}
-
-void Player::teleport(glm::vec3 position) {
-    rb.pos = position;
-    rb.velocity = glm::vec3(0.0f);
-    rb.acceleration = Environment::gravitationalAcceleration; // Reset acceleration
-    updateCameraPosition();
-}
-
-void Player::updateCameraPosition() {
-    camera->cameraPos = rb.pos + cameraOffset;
-}
-
-void Player::updatePlayerState() {
-    // Update state based on velocity and ground contact
-    if (state == PlayerState::JUMPING && rb.velocity.y <= 0.0f) {
-        state = PlayerState::AIRBORNE;
-    }
-}
-
-glm::vec3 Player::calculateMovementDirection(bool forward, bool backward, bool left, bool right) {
-    glm::vec3 movement(0.0f);
-
-    // Get camera's forward and right vectors (without Y component for movement)
-    glm::vec3 cameraForward = glm::normalize(glm::vec3(camera->cameraFront.x, 0.0f, camera->cameraFront.z));
-    glm::vec3 cameraRight = glm::normalize(glm::cross(cameraForward, glm::vec3(0.0f, 1.0f, 0.0f)));
-
-    if (forward) movement += cameraForward;
-    if (backward) movement -= cameraForward;
-    if (right) movement += cameraRight;
-    if (left) movement -= cameraRight;
-
-    return movement;
-}
+glm::vec3 Player::getPosition() const { return position; }
+glm::vec3 Player::getVelocity() const { return velocity; }
+glm::vec3 Player::getAcceleration() const { return acceleration; }
+bool Player::isOnGround() const { return onGround; }

@@ -33,18 +33,23 @@
 
 #include "graphics/env/World.h"
 
+#include "player/Player.h"
 
 
 glm::mat4 transform = glm::mat4(1.0f);
 
 //Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
+
+World world(4, 9429238);
+
 Camera cameras[2] = {
-	Camera(glm::vec3(0.0f, 40.0f, 0.0f)), // Start higher up to see terrain
-	Camera(glm::vec3(0.0f, 40.0f, 0.0f))
+	Camera(glm::vec3(0.0f, 90.0f, 0.0f)), // Start higher up to see terrain
+	Camera(glm::vec3(0.0f, 90.0f, 0.0f))
 };
 
-Camera* currentCam = &cameras[0];
+
+
 
 double deltaTime = 0.0f;
 double lastFrame = 0.0f;
@@ -58,7 +63,11 @@ Screen screen;
 
 std::vector<VoxelChunk> chunks;
 
-World world(4, 9429238);
+
+
+Player player(glm::vec3(0.0f, 70.0f, 0.0f), &cameras[0], &world);
+
+Camera* currentCam = player.getCamera();
 
 float x, y, z;
 
@@ -128,6 +137,7 @@ int main()
 
 
 	launchObjects.init();
+
 
 	glm::vec3 cubePositions[] = {
 		glm::vec3(0.0f,  0.0f,  0.0f),
@@ -212,6 +222,8 @@ int main()
 
 		screen.update();
 
+		//player.update(deltaTime);
+
 		shader.activate();
 		shader.set3Float("viewPos", currentCam->cameraPos);
 
@@ -278,6 +290,8 @@ int main()
 		//for (auto& c : chunks)
 		//	c.render(shader);
 
+		player.update(deltaTime);
+
 		static bool firstFrame = true;
 		if (firstFrame) {
 			std::cout << "Camera starting position: ("
@@ -314,6 +328,7 @@ int main()
 	//for (auto& c : chunks)
 	//	c.cleanup();
 
+	
 	world.cleanup();
 
 	//testBlock.cleanup();
@@ -372,12 +387,7 @@ void processInput(double dt) {
 		screen.setShouldClose(true);
 	}
 
-	//if (Keyboard::key(GLFW_KEY_W)) {
-	//	transform = glm::translate(transform, glm::vec3(0.0f, 0.007f, 0.0f));
-	//}
-
 	// change camera
-
 	if (Keyboard::keyWentDown(GLFW_KEY_C)) {
 		if (currentCam == &cameras[0]) {
 			currentCam = &cameras[1];
@@ -387,26 +397,47 @@ void processInput(double dt) {
 		}
 	}
 
-	// move camera
+	// Use a vector to accumulate movement directions
+	glm::vec3 moveDirection(0.0f);
+
+	// Get camera's forward and right vectors, but keep them horizontal (ignore Y component)
+	glm::vec3 forward = glm::normalize(glm::vec3(currentCam->cameraFront.x, 0.0f, currentCam->cameraFront.z));
+	glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
+
+	// Build movement direction based on input
 	if (Keyboard::key(GLFW_KEY_W)) {
-		currentCam->updateCameraPos(CameraDirection::FORWARD, dt);
+		moveDirection += forward;
 	}
 	if (Keyboard::key(GLFW_KEY_S)) {
-		currentCam->updateCameraPos(CameraDirection::BACKWARD, dt);
+		moveDirection -= forward;
 	}
 	if (Keyboard::key(GLFW_KEY_D)) {
-		currentCam->updateCameraPos(CameraDirection::RIGHT, dt);
+		moveDirection += right;  // Fixed: was negative
 	}
 	if (Keyboard::key(GLFW_KEY_A)) {
-		currentCam->updateCameraPos(CameraDirection::LEFT, dt);
-	}
-	if (Keyboard::key(GLFW_KEY_SPACE)) {
-		currentCam->updateCameraPos(CameraDirection::UP, dt);
-	}
-	if (Keyboard::key(GLFW_KEY_LEFT_SHIFT)) {
-		currentCam->updateCameraPos(CameraDirection::DOWN, dt);
+		moveDirection -= right;  // Fixed: was positive
 	}
 
+	// Jump
+	if (Keyboard::key(GLFW_KEY_SPACE)) {
+		player.jump();
+	}
+
+	// Debug: Teleport to safe position if stuck (T key)
+	if (Keyboard::keyWentDown(GLFW_KEY_T)) {
+		player.teleportToSafePosition();
+	}
+
+	// Creative mode flying down (optional)
+	if (Keyboard::key(GLFW_KEY_LEFT_SHIFT)) {
+		// For now, just regular movement - you can implement creative flying later
+		// currentCam->updateCameraPos(CameraDirection::DOWN, dt);
+	}
+
+	// Apply movement to player
+	player.move(moveDirection);
+
+	// Handle mouse look
 	double dx = Mouse::getDX();
 	double dy = Mouse::getDY();
 
@@ -414,14 +445,14 @@ void processInput(double dt) {
 		currentCam->updateCameraDirection(dx, dy);
 	}
 
+	// Handle zoom
 	double scrollDy = Mouse::getScrollDY();
 	if (scrollDy != 0) {
 		currentCam->updateCameraZoom(scrollDy);
 	}
 
-
-	if (Keyboard::keyWentDown(GLFW_KEY_L)) {
+	// Launch projectiles
+	if (Mouse::buttonWentDown(GLFW_MOUSE_BUTTON_LEFT)) {
 		launchItem(dt);
-		//sphere.rb.applyImpulse(currentCam->cameraFront, 5.0f, deltaTime);
 	}
 }

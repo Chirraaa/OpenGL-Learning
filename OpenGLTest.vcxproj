@@ -52,7 +52,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\generation\perlin.h" />
-    <ClInclude Include="src\graphics\env\ThreadedWorld.h" />
     <ClInclude Include="src\graphics\Light.h" />
     <ClInclude Include="src\graphics\Material.h" />
     <ClInclude Include="src\graphics\Mesh.h" />

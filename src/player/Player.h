@@ -1,84 +1,60 @@
-#ifndef PLAYER_H
-#define PLAYER_H
-
 #include <glm/glm.hpp>
-#include "../physics/RigidBody.h"
 #include "../io/Camera.h"
-
-enum class PlayerState {
-    GROUNDED,
-    AIRBORNE,
-    JUMPING
-};
+#include "../physics/RigidBody.h"
+#include "../graphics/env/World.h"
 
 class Player {
-public:
-    // Physics body for the player
-    RigidBody rb;
-
-    // Camera attached to the player
-    Camera* camera;
-
-    // Player properties
-    float walkSpeed;
-    float runSpeed;
-    float jumpForce;
-    float mouseSensitivity;
-
-    // Player dimensions for collision
-    float height;
-    float width;
-    float depth;
-
-    // State tracking
-    PlayerState state;
-    bool isRunning;
-    bool canJump;
-
-    // Ground detection
-    float groundCheckDistance;
-    glm::vec3 groundNormal;
-
-    // Constructor
-    Player(glm::vec3 startPos = glm::vec3(0.0f, 0.0f, 0.0f),
-        float playerHeight = 1.8f,
-        float playerWidth = 0.6f);
-
-    // Destructor
-    ~Player();
-
-    // Update player physics and camera
-    void update(float deltaTime);
-
-    // Input handling
-    void processMovementInput(bool forward, bool backward, bool left, bool right, bool run, float deltaTime);
-    void processMouseInput(double deltaX, double deltaY);
-    void processJumpInput();
-    void processScrollInput(double deltaY);
-
-    // Physics methods
-    void applyGravity(float deltaTime);
-    void applyFriction(float deltaTime);
-    void checkGroundCollision();
-
-    // Getters
-    glm::vec3 getPosition() const { return rb.pos; }
-    glm::vec3 getVelocity() const { return rb.velocity; }
-    glm::vec3 getCameraPosition() const;
-    glm::mat4 getViewMatrix() const;
-
-    // Setters
-    void setPosition(glm::vec3 position);
-    void teleport(glm::vec3 position);
 
 private:
-    // Camera offset from player position (eye level)
-    glm::vec3 cameraOffset;
+	Camera* camera;
+	glm::vec3 position;
+	glm::vec3 velocity;
+	glm::vec3 acceleration;
 
-    // Internal methods
-    void updateCameraPosition();
-    void updatePlayerState();
-    glm::vec3 calculateMovementDirection(bool forward, bool backward, bool left, bool right);
+	// Physics constants
+	const float GRAVITY = -32.0f;
+	const float AIR_FRICTION = 0.98f;
+	const float GROUND_FRICTION = 0.95f;
+	const float TERMINAL_VELOCITY = -50.0f;
+	const float MOVE_SPEED = 5.0f;
+	const float JUMP_FORCE = 10.0f;
+
+	// Player dimensions (bounding box)
+	float width;
+	float height;
+	float depth;
+
+	bool onGround = false;
+	bool canJump = false;
+
+	World* world;
+public:
+	Player(glm::vec3 startPos, Camera* cam, World* gameWorld);
+
+	// update physics and movement
+	void update(float dt);
+
+	// movement input
+	void move(glm::vec3 direction);
+
+	void jump();
+
+	// collision detection
+	bool checkCollision(glm::vec3 newPosition);
+	bool isBlockSolid(int x, int y, int z);
+	void resolveCollisions(glm::vec3& newPosition);
+
+	// Teleport player to safe position if stuck
+	void teleportToSafePosition();
+
+	void validatePosition();
+	// getters
+	Camera* getCamera();
+	glm::vec3 getPosition() const;
+	glm::vec3 getVelocity() const;
+	glm::vec3 getAcceleration() const;
+	bool isOnGround() const;
+
+private:
+	void updateCamera();
 };
-
-#endif
