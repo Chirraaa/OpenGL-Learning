@@ -117,6 +117,23 @@ void World::setBlock(int worldX, int worldY, int worldZ, VoxelType type) {
 	}
 }
 
+void World::placeBlock(int worldX, int worldY, int worldZ, VoxelType type) {
+	int chunkX, chunkZ;
+	getChunkCoords(glm::vec3(worldX, worldY, worldZ), chunkX, chunkZ);
+	VoxelChunk* chunk = getChunk(chunkX, chunkZ);
+
+	if (chunk) {
+		int localX = worldX - (chunkX * CHUNK_SIZE);
+		int localZ = worldZ - (chunkZ * CHUNK_SIZE);
+
+		chunk->voxels[localX][worldY][localZ] = type;
+
+		//chunk->setBlock(localX, worldY, localZ, type);
+		chunk->rebuildMesh();
+	}
+	
+}
+
 VoxelType World::getBlockTypeAt(int worldX, int worldY, int worldZ) {
 	int chunkX, chunkZ;
 	getChunkCoords(glm::vec3(worldX, worldY, worldZ), chunkX, chunkZ);
@@ -125,7 +142,6 @@ VoxelType World::getBlockTypeAt(int worldX, int worldY, int worldZ) {
 	if (chunk) {
 		int localX = worldX - (chunkX * CHUNK_SIZE);
 		int localZ = worldZ - (chunkZ * CHUNK_SIZE);
-		// CORRECTED: Call the renamed function getBlockType
 		return chunk->getBlockType(localX, worldY, localZ);
 	}
 	return VoxelType::AIR;

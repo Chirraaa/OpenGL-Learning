@@ -3,8 +3,8 @@
 double Mouse::x = 0;
 double Mouse::y = 0;
 
-double Mouse::lastX = 0;
-double Mouse::lastY = 0;
+double Mouse::lastX = 400.0;
+double Mouse::lastY = 300.0;
 
 double Mouse::dx = 0;
 double Mouse::dy = 0;
@@ -63,6 +63,7 @@ double Mouse::getDX() {
 	dx = 0;
 	return _dx;
 }
+
 double Mouse::getDY() {
 	double _dy = dy;
 	dy = 0;
@@ -79,6 +80,7 @@ double Mouse::getScrollDY() {
 	scrollDY = 0;
 	return dy;
 }
+
 
 bool Mouse::button(int button) {
 	return buttons[button];

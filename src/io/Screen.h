@@ -24,6 +24,8 @@ public:
 	//window closin accessor and modifier
 	bool shouldClose();
 	void setShouldClose(bool shouldClose);
+
+	GLFWwindow* getWindow() const;
 private:
 	GLFWwindow* window;
 };

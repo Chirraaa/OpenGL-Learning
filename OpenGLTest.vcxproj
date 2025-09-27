@@ -19,6 +19,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Linking\include\imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="Linking\include\imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="Linking\include\imgui\imgui.cpp" />
+    <ClCompile Include="Linking\include\imgui\imgui_demo.cpp" />
+    <ClCompile Include="Linking\include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="Linking\include\imgui\imgui_tables.cpp" />
+    <ClCompile Include="Linking\include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="Linking\lib\stb.cpp" />
     <ClCompile Include="src\generation\perlin.cpp" />
     <ClCompile Include="src\glad.c" />
@@ -29,6 +36,7 @@
     <ClCompile Include="src\graphics\Model.cpp" />
     <ClCompile Include="src\graphics\models\voxelchunk.cpp" />
     <ClCompile Include="src\graphics\Texture.cpp" />
+    <ClCompile Include="src\gui\ingameInterface.cpp" />
     <ClCompile Include="src\io\Camera.cpp" />
     <ClCompile Include="src\io\Joystick.cpp" />
     <ClCompile Include="src\io\Keyboard.cpp" />
@@ -55,6 +63,15 @@
     <None Include="assets\vertex_core.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Linking\include\imgui\imgui_impl_glfw.h" />
+    <ClInclude Include="Linking\include\imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="Linking\include\imgui\imconfig.h" />
+    <ClInclude Include="Linking\include\imgui\imgui.h" />
+    <ClInclude Include="Linking\include\imgui\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="Linking\include\imgui\imgui_internal.h" />
+    <ClInclude Include="Linking\include\imgui\imstb_rectpack.h" />
+    <ClInclude Include="Linking\include\imgui\imstb_textedit.h" />
+    <ClInclude Include="Linking\include\imgui\imstb_truetype.h" />
     <ClInclude Include="src\generation\perlin.h" />
     <ClInclude Include="src\graphics\Light.h" />
     <ClInclude Include="src\graphics\Material.h" />
@@ -70,6 +87,7 @@
     <ClInclude Include="src\graphics\models\voxelchunk.hpp" />
     <ClInclude Include="src\graphics\Texture.h" />
     <ClInclude Include="src\graphics\env\World.h" />
+    <ClInclude Include="src\gui\ingameInterface.h" />
     <ClInclude Include="src\io\Camera.h" />
     <ClInclude Include="src\io\Joystick.h" />
     <ClInclude Include="src\io\Keyboard.h" />

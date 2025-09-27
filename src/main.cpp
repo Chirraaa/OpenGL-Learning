@@ -35,6 +35,18 @@
 
 #include "player/Player.h"
 
+#include "gui/ingameInterface.h"
+
+
+struct RaycastHit {
+	bool hit = false;
+	glm::ivec3 blockPos;
+	glm::vec3 hitPoint;
+	Face hitFace;
+	glm::vec3 faceNormal;
+};
+
+Face selectedBlockFace;
 
 glm::mat4 transform = glm::mat4(1.0f);
 
@@ -88,6 +100,12 @@ SphereArray launchObjects;
 
 Voxel testBlock;
 
+// GUI
+IngameInterface* ui = nullptr;
+bool guiMode = false;
+
+
+// function declaration
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(double dt);
 
@@ -97,6 +115,13 @@ void setupCrosshair();
 void renderCrosshair();
 void performRaycasting();
 void processInput(double dt);
+RaycastHit performRaycastingWithFace();
+Face calculateHitFace(glm::vec3 hitPoint, glm::ivec3 blockPos);
+glm::vec3 getFaceNormal(Face face);
+glm::ivec3 calculateNewBlockPosition(glm::ivec3 hitBlockPos, Face hitFace);
+bool isValidPlacementPosition(glm::ivec3 pos);
+void toggleGUIMode();
+
 
 int main()
 {
@@ -234,6 +259,12 @@ int main()
 	y = 0.0f;
 	z = 3.0f;
 
+
+	// GUI 
+
+	ui = new IngameInterface(screen.getWindow());
+	ui->initImGui();
+
 	while (!screen.shouldClose()) {
 		double currentTime = glfwGetTime();
 		deltaTime = currentTime - lastFrame;
@@ -245,6 +276,8 @@ int main()
 
 
 		screen.update();
+
+		ui->updateFPS(currentTime);
 
 		//player.update(deltaTime);
 
@@ -351,16 +384,21 @@ int main()
 
 		renderCrosshair();
 
+		RaycastInfo raycastInfo = { blockSelected, selectedBlockPos, selectedBlockFace };
+		ui->renderImGui(world, player, *currentCam, deltaTime, raycastInfo, guiMode);
+
 		screen.newFrame();
 	}
-
 	//for (auto& c : chunks)
 	//	c.cleanup();
 
 
-	
+
 
 	//testBlock.cleanup();
+
+	ui->cleanupImGui();
+	delete ui;
 
 	launchObjects.cleanup();
 
@@ -421,84 +459,121 @@ void processInput(double dt) {
 		screen.setShouldClose(true);
 	}
 
-	// change camera
-	if (Keyboard::keyWentDown(GLFW_KEY_C)) {
-		if (currentCam == &cameras[0]) {
-			currentCam = &cameras[1];
+	// Toggle GUI mode with Tab key
+	if (Keyboard::keyWentDown(GLFW_KEY_TAB)) {
+		guiMode = !guiMode;
+		std::cout << "GUI Mode: " << (guiMode ? "ON" : "OFF") << std::endl;
+
+		if (guiMode) {
+			glfwSetInputMode(screen.getWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
 		else {
-			currentCam = &cameras[0];
+			glfwSetInputMode(screen.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		}
+		return; // Don't process other input this frame
 	}
 
-	// Use a vector to accumulate movement directions
-	glm::vec3 moveDirection(0.0f);
-
-	// Get camera's forward and right vectors, but keep them horizontal (ignore Y component)
-	glm::vec3 forward = glm::normalize(glm::vec3(currentCam->cameraFront.x, 0.0f, currentCam->cameraFront.z));
-	glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
-
-	// Build movement direction based on input
-	if (Keyboard::key(GLFW_KEY_W)) {
-		moveDirection += forward;
-	}
-	if (Keyboard::key(GLFW_KEY_S)) {
-		moveDirection -= forward;
-	}
-	if (Keyboard::key(GLFW_KEY_D)) {
-		moveDirection += right;  // Fixed: was negative
-	}
-	if (Keyboard::key(GLFW_KEY_A)) {
-		moveDirection -= right;  // Fixed: was positive
-	}
-
-	// Jump
-	if (Keyboard::key(GLFW_KEY_SPACE)) {
-		player.jump();
-	}
-
-	// Debug: Teleport to safe position if stuck (T key)
-	if (Keyboard::keyWentDown(GLFW_KEY_T)) {
-		player.teleportToSafePosition();
-	}
-
-	// Creative mode flying down (optional)
-	if (Keyboard::key(GLFW_KEY_LEFT_SHIFT)) {
-		// For now, just regular movement - you can implement creative flying later
-		// currentCam->updateCameraPos(CameraDirection::DOWN, dt);
-	}
-
-	// Apply movement to player
-	player.move(moveDirection);
-
-	// Handle mouse look
+	// Get mouse input BUT only use it for camera if not in GUI mode
 	double dx = Mouse::getDX();
 	double dy = Mouse::getDY();
 
-	if (dx != 0 || dy != 0) {
+	// Only update camera if NOT in GUI mode
+	if (!guiMode && (dx != 0 || dy != 0)) {
 		currentCam->updateCameraDirection(dx, dy);
 	}
 
-	// Handle zoom
-	double scrollDy = Mouse::getScrollDY();
-	if (scrollDy != 0) {
-		currentCam->updateCameraZoom(scrollDy);
+	// Handle zoom (only in game mode)
+	if (!guiMode) {
+		double scrollDy = Mouse::getScrollDY();
+		if (scrollDy != 0) {
+			currentCam->updateCameraZoom(scrollDy);
+		}
 	}
 
-	// Launch projectiles
-	if (Mouse::buttonWentDown(GLFW_MOUSE_BUTTON_LEFT)) {
-		launchItem(dt);
-	}
+	// Only process keyboard/mouse clicks if not in GUI mode
+	if (!guiMode) {
+		// change camera
+		if (Keyboard::keyWentDown(GLFW_KEY_C)) {
+			if (currentCam == &cameras[0]) {
+				currentCam = &cameras[1];
+			}
+			else {
+				currentCam = &cameras[0];
+			}
+		}
 
-	if (Mouse::buttonWentDown(GLFW_MOUSE_BUTTON_RIGHT)) {
-		if (blockSelected) {
-			world.setBlock(selectedBlockPos.x, selectedBlockPos.y, selectedBlockPos.z, VoxelType::AIR);
-			blockSelected = false; // Deselect after breaking
+		glm::vec3 moveDirection(0.0f);
+		glm::vec3 forward = glm::normalize(glm::vec3(currentCam->cameraFront.x, 0.0f, currentCam->cameraFront.z));
+		glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
+
+		if (Keyboard::key(GLFW_KEY_W)) {
+			moveDirection += forward;
+		}
+		if (Keyboard::key(GLFW_KEY_S)) {
+			moveDirection -= forward;
+		}
+		if (Keyboard::key(GLFW_KEY_D)) {
+			moveDirection += right;
+		}
+		if (Keyboard::key(GLFW_KEY_A)) {
+			moveDirection -= right;
+		}
+
+		if (Keyboard::key(GLFW_KEY_SPACE)) {
+			player.jump();
+		}
+
+		if (Keyboard::key(GLFW_KEY_LEFT_SHIFT) && !player.isGravityEnabled()) {
+			player.moveVertical(-1.0f); // Fly down
+		}
+
+		if (Keyboard::keyWentDown(GLFW_KEY_T)) {
+			player.teleportToSafePosition();
+		}
+
+		player.move(moveDirection);
+
+		if (Mouse::buttonWentDown(GLFW_MOUSE_BUTTON_LEFT)) {
+			if (blockSelected) {
+				world.setBlock(selectedBlockPos.x, selectedBlockPos.y, selectedBlockPos.z, VoxelType::AIR);
+				blockSelected = false;
+			}
+		}
+
+		if (Mouse::buttonWentDown(GLFW_MOUSE_BUTTON_RIGHT)) {
+			if (blockSelected) {
+				glm::ivec3 newBlockPos = calculateNewBlockPosition(selectedBlockPos, selectedBlockFace);
+				if (isValidPlacementPosition(newBlockPos)) {
+					world.placeBlock(newBlockPos.x, newBlockPos.y, newBlockPos.z, VoxelType::COBBLESTONE);
+				}
+				else {
+					std::cout << "Cannot place block there!" << std::endl;
+				}
+			}
 		}
 	}
 }
 
-// helper
+void toggleGUIMode() {
+	guiMode = !guiMode;
+
+	if (guiMode) {
+		// Enable GUI mode - show cursor
+		glfwSetInputMode(screen.getWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		std::cout << "GUI Mode: ON" << std::endl;
+	}
+	else {
+		// Enable game mode - hide cursor
+		glfwSetInputMode(screen.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		std::cout << "GUI Mode: OFF" << std::endl;
+
+		// Reset mouse to prevent camera jump
+		Mouse::firstMouse = true;
+	}
+}
+
+// helper functions
+
 glm::ivec3 worldToBlockCoords(glm::vec3 worldPos) {
 	return glm::ivec3(
 		static_cast<int>(std::floor(worldPos.x)),
@@ -507,19 +582,33 @@ glm::ivec3 worldToBlockCoords(glm::vec3 worldPos) {
 	);
 }
 
-void performRaycasting() {
+bool isValidPlacementPosition(glm::ivec3 pos) {
+	// Don't place blocks inside the player
+	glm::vec3 playerPos = player.getPosition();
+
+	// Simple check - make sure it's not too close to player
+	float distance = glm::length(glm::vec3(pos) - playerPos);
+	if (distance < 1.5f) {
+		return false;
+	}
+
+	// Make sure there's no block already there
+	VoxelType existingType = world.getBlockTypeAt(pos.x, pos.y, pos.z);
+	return existingType == VoxelType::AIR;
+}
+
+RaycastHit performRaycastingWithFace() {
 	const float maxDist = 6.0f;
-	const float stepSize = 0.05f;
+	const float stepSize = 0.02f; // Smaller step for better accuracy
 
 	glm::vec3 rayStart = currentCam->cameraPos;
 	glm::vec3 rayDir = glm::normalize(currentCam->cameraFront);
 
-	blockSelected = false;
+	RaycastHit result;
 
 	for (float distance = 0.0f; distance < maxDist; distance += stepSize) {
 		glm::vec3 currentPos = rayStart + rayDir * distance;
 
-		// Block coordinates (blocks occupy integer coordinate ranges)
 		glm::ivec3 blockPos = glm::ivec3(
 			static_cast<int>(std::floor(currentPos.x)),
 			static_cast<int>(std::floor(currentPos.y)),
@@ -529,10 +618,91 @@ void performRaycasting() {
 		VoxelType type = world.getBlockTypeAt(blockPos.x, blockPos.y, blockPos.z);
 
 		if (type != VoxelType::AIR) {
-			blockSelected = true;
-			selectedBlockPos = blockPos;
-			return;
+			result.hit = true;
+			result.blockPos = blockPos;
+			result.hitPoint = currentPos;
+
+			// Calculate which face was hit
+			result.hitFace = calculateHitFace(currentPos, blockPos);
+			result.faceNormal = getFaceNormal(result.hitFace);
+
+			return result;
 		}
+	}
+
+	return result; // No hit
+}
+
+// Function to determine which face of the block was hit
+Face calculateHitFace(glm::vec3 hitPoint, glm::ivec3 blockPos) {
+	// Convert block coordinates to the actual block boundaries
+	// Blocks occupy space from blockPos to blockPos + 1
+	float blockMinX = blockPos.x;
+	float blockMaxX = blockPos.x + 1.0f;
+	float blockMinY = blockPos.y;
+	float blockMaxY = blockPos.y + 1.0f;
+	float blockMinZ = blockPos.z;
+	float blockMaxZ = blockPos.z + 1.0f;
+
+	// Calculate distance to each face
+	float distToLeft = std::abs(hitPoint.x - blockMinX);  // Left face (x = blockMinX)
+	float distToRight = std::abs(hitPoint.x - blockMaxX);  // Right face (x = blockMaxX)
+	float distToBottom = std::abs(hitPoint.y - blockMinY);  // Bottom face (y = blockMinY)
+	float distToTop = std::abs(hitPoint.y - blockMaxY);  // Top face (y = blockMaxY)
+	float distToBack = std::abs(hitPoint.z - blockMinZ);  // Back face (z = blockMinZ)
+	float distToFront = std::abs(hitPoint.z - blockMaxZ);  // Front face (z = blockMaxZ)
+
+	// Find the minimum distance (closest face)
+	float minDist = std::min({ distToLeft, distToRight, distToBottom, distToTop, distToBack, distToFront });
+
+	if (minDist == distToLeft) return Face::LEFT;
+	if (minDist == distToRight) return Face::RIGHT;
+	if (minDist == distToBottom) return Face::BOTTOM;
+	if (minDist == distToTop) return Face::TOP;
+	if (minDist == distToBack) return Face::BACK;
+	return Face::FRONT;
+}
+
+// Get the normal vector for a face
+glm::vec3 getFaceNormal(Face face) {
+	switch (face) {
+	case Face::FRONT:  return glm::vec3(0, 0, 1);
+	case Face::BACK:   return glm::vec3(0, 0, -1);
+	case Face::LEFT:   return glm::vec3(-1, 0, 0);
+	case Face::RIGHT:  return glm::vec3(1, 0, 0);
+	case Face::TOP:    return glm::vec3(0, 1, 0);
+	case Face::BOTTOM: return glm::vec3(0, -1, 0);
+	}
+	return glm::vec3(0, 0, 0);
+}
+
+// Calculate where to place the new block
+glm::ivec3 calculateNewBlockPosition(glm::ivec3 hitBlockPos, Face hitFace) {
+	glm::vec3 normal = getFaceNormal(hitFace);
+	return hitBlockPos + glm::ivec3(normal);
+}
+
+// Updated main raycasting function for your existing code
+void performRaycasting() {
+	RaycastHit hit = performRaycastingWithFace();
+
+	if (hit.hit) {
+		blockSelected = true;
+		selectedBlockPos = hit.blockPos;
+
+		// Store the hit face for block placement (you'll need to add this variable)
+		selectedBlockFace = hit.hitFace;
+
+		// Debug output
+		std::cout << "Hit block at: (" << hit.blockPos.x << ", " << hit.blockPos.y << ", " << hit.blockPos.z << ")" << std::endl;
+		std::cout << "Hit face: " << static_cast<int>(hit.hitFace) << std::endl;
+		std::cout << "Hit point: (" << hit.hitPoint.x << ", " << hit.hitPoint.y << ", " << hit.hitPoint.z << ")" << std::endl;
+
+		glm::ivec3 newBlockPos = calculateNewBlockPosition(hit.blockPos, hit.hitFace);
+		std::cout << "New block would go at: (" << newBlockPos.x << ", " << newBlockPos.y << ", " << newBlockPos.z << ")" << std::endl;
+	}
+	else {
+		blockSelected = false;
 	}
 }
 
