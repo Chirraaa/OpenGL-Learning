@@ -36,6 +36,7 @@
 #include "player/Player.h"
 
 #include "gui/ingameInterface.h"
+#include "graphics/models/donut.hpp"
 
 
 struct RaycastHit {
@@ -94,7 +95,11 @@ float x, y, z;
 
 //Sphere sphere(glm::vec3(0.0f), glm::vec3(1.0f));
 
+//Donut d(glm::vec3(10.0f, 35.0f, 0.0f), glm::vec3(0.05f, 0.025f, 0.025f));
+
 // std::vector<Sphere> launchObjects;
+
+DonutArray launchDonuts;
 
 SphereArray launchObjects;
 
@@ -164,6 +169,10 @@ int main()
 
 	//Gun g;
 	//g.loadModel("assets/models/lowpoly Rifle/scene.gltf");
+	
+
+
+	//d.init();
 
 	//sphere.init();
 
@@ -183,7 +192,8 @@ int main()
 
 
 	launchObjects.init();
-
+	launchDonuts.init();
+	launchDonuts.setWorld(&world);
 
 	glm::vec3 cubePositions[] = {
 		glm::vec3(0.0f,  0.0f,  0.0f),
@@ -318,29 +328,33 @@ int main()
 
 		std::stack<int> removeObjects;
 
-		for (int i = 0; i < launchObjects.instances.size(); i++) {
-			if (glm::length(currentCam->cameraPos - launchObjects.instances[i].pos.y) > 50.0f) {
+		for (int i = 0; i < launchDonuts.instances.size(); i++) {
+			if (glm::length(currentCam->cameraPos - launchDonuts.instances[i].pos.y) > 50.0f) {
 				removeObjects.push(i);
 				continue;
 			}
 		}
 
 		for (int i = removeObjects.size() - 1; i >= 0; i--) {
-			launchObjects.instances.erase(launchObjects.instances.begin() + removeObjects.top());
+			launchDonuts.instances.erase(launchDonuts.instances.begin() + removeObjects.top());
 			removeObjects.pop();
 		}
 
-		if (launchObjects.instances.size() > 0) {
-			launchObjects.render(shader, deltaTime);
+		if (launchDonuts.instances.size() > 0) {
+			launchDonuts.render(shader, deltaTime);
 		}
-		//for (Sphere& s : launchObjects) {
-		//	s.render(shader, deltaTime);
+
+		//for (Donut& d : launchDonuts) {
+		//	d.render(shader, deltaTime);
 		//}
 
 		//for(int i = 0; i < 10; i++) 
 		//	cubes[i].render(shader);
 
 		//sphere.render(shader, deltaTime);
+
+		// Donut activities
+		//d.render(shader, deltaTime);
 
 		//chunk.render(shader);
 
@@ -387,6 +401,10 @@ int main()
 		RaycastInfo raycastInfo = { blockSelected, selectedBlockPos, selectedBlockFace };
 		ui->renderImGui(world, player, *currentCam, deltaTime, raycastInfo, guiMode);
 
+
+
+
+
 		screen.newFrame();
 	}
 	//for (auto& c : chunks)
@@ -400,7 +418,7 @@ int main()
 	ui->cleanupImGui();
 	delete ui;
 
-	launchObjects.cleanup();
+	launchDonuts.cleanup();
 
 	//for (int i = 0; i < 10; i++)
 	//	cubes[i].cleanup();
@@ -440,11 +458,11 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 void launchItem(float dt) {
 
-	RigidBody rb(0.25f, currentCam->cameraPos + glm::vec3(3.0f, 0.0f, 0.0f));
+	RigidBody rb(1.0f, currentCam->cameraPos + glm::vec3(3.0f, 0.0f, 0.0f));
 	rb.mass = 0.2f;
-	rb.applyImpulse(currentCam->cameraFront, 1350.0f, dt);
+	rb.applyImpulse(currentCam->cameraFront, 500.0f, dt);
 	rb.applyAcceleration(Environment::gravitationalAcceleration);
-	launchObjects.instances.push_back(rb);
+	launchDonuts.instances.push_back(rb);
 
 	//Sphere newSphere(currentCam->cameraPos, glm::vec3(0.25f));
 	//newSphere.init();
@@ -521,6 +539,10 @@ void processInput(double dt) {
 
 		if (Keyboard::key(GLFW_KEY_SPACE)) {
 			player.jump();
+		}
+
+		if (Keyboard::keyWentDown(GLFW_KEY_L)) {
+			launchItem(deltaTime);
 		}
 
 		if (Keyboard::key(GLFW_KEY_LEFT_SHIFT) && !player.isGravityEnabled()) {
